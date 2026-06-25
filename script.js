@@ -5,9 +5,9 @@
 (function () {
   "use strict";
 
-  /* ---------- Año dinámico en el footer ---------- */
-  var yearEl = document.getElementById("year");
-  if (yearEl) yearEl.textContent = new Date().getFullYear();
+  // Marca que JS está activo: recién entonces el CSS oculta los .reveal.
+  // Si este script no corre, el contenido se ve siempre.
+  document.documentElement.classList.add("js");
 
   /* ---------- Menú móvil (hamburguesa) ---------- */
   var toggle = document.getElementById("navToggle");
@@ -31,11 +31,13 @@
   }
 
   /* ---------- Reveal al hacer scroll ---------- */
-  var revealEls = document.querySelectorAll(".reveal");
+  var revealEls = [].slice.call(document.querySelectorAll(".reveal"));
+  var showAll = function () {
+    revealEls.forEach(function (el) { el.classList.add("is-visible"); });
+  };
 
   if (!("IntersectionObserver" in window) || revealEls.length === 0) {
-    // Fallback: mostrar todo si no hay soporte
-    revealEls.forEach(function (el) { el.classList.add("is-visible"); });
+    showAll();
     return;
   }
 
@@ -48,8 +50,13 @@
         }
       });
     },
-    { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
+    // threshold 0 + margen negativo pequeño: aparece apenas asoma en pantalla.
+    { threshold: 0, rootMargin: "0px 0px -60px 0px" }
   );
 
   revealEls.forEach(function (el) { observer.observe(el); });
+
+  // Red de seguridad: si algo no se reveló (p. ej. el observer no disparó),
+  // mostramos todo a los 3 s para que nunca quede contenido invisible.
+  window.setTimeout(showAll, 3000);
 })();
