@@ -8,15 +8,20 @@ desde el sitio original de Wix para alojar en GitHub Pages.
 
 ```
 adef-villa-ortuzar/
-├── index.html        # Página principal
-├── styles.css        # Estilos, paleta, hovers y transiciones
-├── script.js         # Menú móvil + animaciones al hacer scroll
-├── images/           # Imágenes (descargadas del sitio original)
-│   ├── heels-arte-fluido.jpg
-│   ├── ballet-tela-rosa.jpg
-│   └── ballet-bokeh.jpg
+├── index.html              # Inicio
+├── clases.html             # Clases
+├── estudio-de-baile.html   # Estudio de Baile
+├── conciertos.html         # Conciertos (+ Galería de Conciertos)
+├── nuestro-espacio.html    # Nuestro Espacio
+├── styles.css              # Estilos compartidos: paleta, hovers y transiciones
+├── script.js               # Menú móvil + animaciones al hacer scroll
+├── images/                 # Imágenes (descargadas del sitio original)
 └── README.md
 ```
+
+Todas las páginas comparten el mismo header, footer, hoja de estilos y
+script, y la navegación enlaza entre los archivos `.html` locales (no
+redirige al sitio Wix original).
 
 ## Ver en local
 
@@ -47,7 +52,9 @@ python -m http.server 8000
 - **Funcionalidades** conservadas: hover de tarjetas (zoom + elevación),
   botones con relleno deslizante, subrayado animado en el menú, menú móvil
   y aparición de secciones al hacer scroll.
-- Los enlaces **"Bailá"** abren WhatsApp (`wa.me/91131351262`).
-- Los enlaces del menú hacia otras secciones (Inicio, Clases, Conciertos,
-  Nuestro Espacio, Galería) apuntan por ahora al sitio Wix original;
-  reemplazalos cuando portes esas páginas.
+- Los enlaces **"Bailá"** y **"Entradas"** abren WhatsApp (`wa.me/91131351262`).
+- La barra de navegación enlaza entre las páginas locales del sitio.
+  "Galería de Conciertos" apunta a `conciertos.html` (misma página que el
+  sitio original).
+- El degradado rojo del hero de Inicio se reproduce con CSS (el sitio
+  original usa un overlay de color sobre la imagen).

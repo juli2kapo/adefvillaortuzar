@@ -369,6 +369,363 @@ a   { color: inherit; }
   color: #9c9090;
 }
 
+/* ============================================================
+   PÁGINAS INTERNAS — estilos compartidos
+   ============================================================ */
+
+/* Hero con banda de imagen y texto superpuesto (Inicio, etc.) */
+.hero-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: clamp(300px, 36vw, 480px);
+  overflow: hidden;
+}
+.hero-banner-bg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+/* Banda roja (Inicio): degradado que reproduce el overlay del sitio original */
+.hero-red {
+  background:
+    radial-gradient(125% 140% at 36% 28%, #b83139 0%, #8c2126 34%, #5d1818 64%, #300d0d 100%);
+}
+.hero-banner-inner { position: relative; z-index: 1; padding: 24px; }
+.hero-banner-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  color: #fff;
+  font-size: clamp(1.9rem, 4.5vw, 2.9rem);
+  line-height: 1.25;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0 0 26px;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .35);
+}
+
+/* Botón rectangular rojo oscuro (estilo home) */
+.btn-rect {
+  --bg: #812424;
+  display: inline-block;
+  text-decoration: none;
+  font-family: var(--sans);
+  font-weight: 500;
+  letter-spacing: .5px;
+  font-size: .95rem;
+  color: #fff;
+  background: var(--bg);
+  padding: 12px 30px;
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+}
+.btn-rect::before {
+  content: ""; position: absolute; inset: 0;
+  background: #6f2525;
+  transform: translateY(101%);
+  transition: transform .3s var(--ease);
+  z-index: -1;
+}
+.btn-rect:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(111, 37, 37, .45); }
+.btn-rect:hover::before { transform: translateY(0); }
+
+/* Sección Bienvenidos (fondo oscuro, imagen + tarjeta blanca) */
+.welcome {
+  background: var(--ink);
+  padding: clamp(40px, 6vw, 72px) 0;
+}
+.welcome-inner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  align-items: center;
+  gap: 0;
+}
+.welcome-media {
+  overflow: hidden;
+  border-radius: 6px 0 0 6px;
+  align-self: stretch;
+  min-height: 280px;
+}
+.welcome-media img { width: 100%; height: 100%; object-fit: cover; }
+.welcome-card {
+  background: #fff;
+  padding: clamp(30px, 4vw, 52px);
+  border-radius: 0 6px 6px 0;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+}
+.welcome-card h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.7rem, 3.5vw, 2.2rem);
+  margin: 0 0 18px;
+  color: var(--ink);
+}
+.welcome-card p {
+  font-family: var(--sans);
+  color: var(--ink-soft);
+  margin: 0 0 26px;
+}
+.welcome-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+}
+.welcome-links a {
+  text-decoration: none;
+  font-family: var(--sans);
+  font-size: .82rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink);
+  position: relative;
+  padding-bottom: 4px;
+  transition: color .25s var(--ease);
+}
+.welcome-links a::after {
+  content: ""; position: absolute; left: 0; bottom: 0;
+  width: 100%; height: 2px; background: var(--rose);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .3s var(--ease);
+}
+.welcome-links a:hover { color: var(--rose); }
+.welcome-links a:hover::after { transform: scaleX(1); }
+
+/* Hero partido: panel gris a la izquierda + imagen (Clases) */
+.split-hero {
+  position: relative;
+  min-height: clamp(320px, 38vw, 460px);
+  display: flex;
+  align-items: center;
+  background-size: cover;
+  background-position: center right;
+}
+.split-hero-panel {
+  background: rgba(214, 209, 209, .92);
+  max-width: 480px;
+  margin: clamp(24px, 5vw, 60px);
+  padding: clamp(28px, 4vw, 48px);
+  border-radius: 4px;
+}
+.split-hero-panel h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2.2rem, 5vw, 3rem);
+  margin: 0 0 18px;
+  color: var(--ink);
+}
+.split-hero-panel p {
+  font-family: var(--sans);
+  color: var(--ink-soft);
+  margin: 0 0 26px;
+}
+
+/* Hero con banda de imagen + tarjeta blanca a la derecha (Conciertos) */
+.banner-hero {
+  position: relative;
+  min-height: clamp(300px, 34vw, 440px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  background-size: cover;
+  background-position: center;
+}
+.banner-hero-card {
+  background: #fff;
+  max-width: 480px;
+  margin: clamp(20px, 4vw, 56px);
+  padding: clamp(28px, 4vw, 46px);
+  border-radius: 4px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
+}
+.banner-hero-card h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2rem, 4.5vw, 2.8rem);
+  margin: 0 0 16px;
+  color: var(--ink);
+}
+.banner-hero-card p { font-family: var(--sans); color: var(--ink-soft); margin: 0 0 24px; }
+
+/* Botón "Entradas" dentro de las tarjetas de evento */
+.tile .btn-rect { margin-top: 18px; align-self: flex-start; font-size: .85rem; padding: 9px 24px; }
+
+/* Banda de Precios (oscura) */
+.precios {
+  background: var(--ink);
+  color: #efe7e7;
+  text-align: center;
+  padding: clamp(48px, 7vw, 84px) 24px;
+}
+.precios h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  margin: 0 0 28px;
+  color: #fff;
+}
+.precios-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 36px; justify-content: center;
+  font-family: var(--sans);
+}
+.precios-list li { font-size: 1.05rem; letter-spacing: .5px; }
+.precios-list strong {
+  display: block;
+  font-family: var(--serif);
+  font-size: 1.6rem;
+  color: var(--rose);
+  margin-top: 6px;
+  font-weight: 400;
+}
+
+/* Grilla de clases (cajas con borde) */
+.class-grid {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 40px) 24px clamp(50px, 8vw, 90px);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+.class-box {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 26px 22px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease);
+}
+.class-box:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 32px rgba(24, 24, 24, .10);
+  border-color: var(--rose-soft);
+}
+.class-box h3 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.3rem;
+  color: var(--ink);
+  margin: 0;
+}
+.class-box p {
+  font-family: var(--sans);
+  font-size: .92rem;
+  color: var(--ink-soft);
+  margin: 0;
+  flex: 1;
+}
+.class-box a {
+  font-family: var(--sans);
+  font-size: .9rem;
+  color: var(--rose);
+  text-decoration: none;
+  transition: color .25s var(--ease);
+}
+.class-box a:hover { color: var(--ink); text-decoration: underline; }
+
+/* Filas alternadas imagen/texto (Nuestro Espacio) */
+.feature-rows {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 40px) 24px clamp(40px, 7vw, 70px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(28px, 5vw, 56px);
+}
+.feature-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: clamp(24px, 5vw, 64px);
+}
+.feature-row .feature-media {
+  overflow: hidden;
+  border-radius: 8px;
+  aspect-ratio: 3 / 2;
+  box-shadow: 0 14px 34px rgba(24, 24, 24, .12);
+}
+.feature-row .feature-media img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .7s var(--ease);
+}
+.feature-row:hover .feature-media img { transform: scale(1.05); }
+.feature-row .feature-text { text-align: center; padding: 12px; }
+.feature-row .feature-text h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  margin: 0 0 14px;
+  color: var(--ink);
+}
+.feature-row .feature-text p {
+  font-family: var(--sans);
+  color: var(--ink-soft);
+  margin: 0 auto 18px;
+  max-width: 360px;
+}
+/* zigzag: en filas pares, la imagen va a la derecha */
+.feature-row:nth-child(even) .feature-media { order: 2; }
+
+/* Sección CONTACTO */
+.contacto {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: clamp(50px, 8vw, 88px) 24px;
+  text-align: center;
+}
+.contacto-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.9rem, 4.5vw, 2.5rem);
+  color: var(--rose);
+  margin: 0 0 26px;
+}
+.contacto-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--sans);
+  font-size: 1.02rem;
+  color: var(--ink-soft);
+}
+.contacto-list a { color: var(--ink-soft); text-decoration: none; transition: color .25s var(--ease); }
+.contacto-list a:hover { color: var(--rose); }
+
+/* Grilla genérica de proyectos/eventos (Conciertos, Clases, etc.) */
+.tiles {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: clamp(30px, 5vw, 60px) 24px clamp(50px, 8vw, 90px);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+}
+.tile { display: flex; flex-direction: column; text-align: left; }
+.tile-media {
+  overflow: hidden; border-radius: 8px; aspect-ratio: 4 / 3;
+  box-shadow: 0 8px 22px rgba(24, 24, 24, .08);
+}
+.tile-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease); }
+.tile:hover .tile-media img { transform: scale(1.07); }
+.tile-title {
+  font-family: var(--serif); font-weight: 400; font-size: 1.3rem;
+  color: var(--ink); margin: 20px 0 10px;
+}
+.tile-text { font-family: var(--sans); font-size: .95rem; color: var(--ink-soft); margin: 0; }
+
 /* ===================== REVEAL ON SCROLL =====================
    El estado oculto sólo se aplica cuando JS está activo (.js).
    Sin JS, o si el observer falla, el contenido se ve igual. */
@@ -386,6 +743,8 @@ a   { color: inherit; }
 @media (max-width: 900px) {
   .cards { grid-template-columns: repeat(2, 1fr); gap: 30px; }
   .cards .card:nth-child(3) { transition-delay: 0s; }
+  .tiles { grid-template-columns: repeat(2, 1fr); gap: 30px; }
+  .class-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 720px) {
@@ -412,6 +771,24 @@ a   { color: inherit; }
   .card { text-align: center; }
   .btn { align-self: center; }
   .footer-inner { flex-direction: column; text-align: center; }
+
+  .welcome-inner { grid-template-columns: 1fr; }
+  .welcome-media { border-radius: 6px 6px 0 0; min-height: 220px; }
+  .welcome-card { border-radius: 0 0 6px 6px; }
+  .welcome-links { justify-content: center; }
+
+  .tiles { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
+  .tile { text-align: center; }
+
+  .split-hero-panel { max-width: none; margin: 16px; }
+  .class-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
+
+  .banner-hero { justify-content: center; }
+  .banner-hero-card { max-width: none; margin: 16px; }
+  .tile .btn-rect { align-self: center; }
+
+  .feature-row { grid-template-columns: 1fr; gap: 20px; }
+  .feature-row:nth-child(even) .feature-media { order: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
