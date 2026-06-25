@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
+  <link rel="icon" type="image/png" href="images/logo-adef.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -18,7 +19,8 @@
   <header class="site-header" id="top">
     <div class="header-inner">
       <a href="index.html" class="brand" aria-label="Asociación de Fomento Villa Ortúzar — Inicio">
-        Asociación de Fomento<br />Villa Ortúzar
+        <img class="brand-logo" src="images/logo-adef.png" alt="ADEF" />
+        <span class="brand-name">Asociación de Fomento<br />Villa Ortúzar</span>
       </a>
 
       <button class="nav-toggle" id="navToggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="primary-nav">
@@ -32,7 +34,7 @@
           <li><a href="estudio-de-baile.html" class="is-current" aria-current="page">Estudio de Baile</a></li>
           <li><a href="conciertos.html">Conciertos</a></li>
           <li><a href="nuestro-espacio.html">Nuestro Espacio</a></li>
-          <li><a href="conciertos.html">Galería de Conciertos</a></li>
+          <li><a href="galeria.html">Galería de Conciertos</a></li>
         </ul>
       </nav>
     </div>
@@ -45,6 +47,17 @@
 
   <!-- ===================== INTRO / CURSOS MENSUALES ===================== -->
   <section class="section intro reveal" id="cursos-mensuales">
+    <svg class="deco-medialuna" viewBox="0 0 150 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- vapor -->
+      <path d="M38 28c-4-5 4-9 0-15M50 28c-4-5 4-9 0-15" stroke="#8c2126" stroke-width="2.4" stroke-linecap="round"/>
+      <!-- taza de café -->
+      <path d="M24 42h44v22a22 22 0 0 1-44 0z" stroke="#8c2126" stroke-width="3" stroke-linejoin="round" fill="#f6e9e9"/>
+      <path d="M68 47h9a10 10 0 0 1 0 20h-4" stroke="#8c2126" stroke-width="3" stroke-linecap="round"/>
+      <path d="M18 92h56" stroke="#8c2126" stroke-width="3" stroke-linecap="round"/>
+      <!-- medialuna -->
+      <path d="M104 50a27 27 0 1 0 26 41 21 21 0 1 1-26-41z" fill="#f6e9e9" stroke="#8c2126" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M104 64l6 6M114 62l6 6M100 76l6 6" stroke="#8c2126" stroke-width="2" stroke-linecap="round"/>
+    </svg>
     <h1 class="display-title">Estudio de Baile</h1>
     <h2 class="section-title">Cursos mensuales</h2>
     <p class="lead">
@@ -153,13 +166,6 @@
     </div>
   </section>
 
-  <!-- ===================== APOYAN NUESTROS PROYECTOS ===================== -->
-  <section class="sponsors reveal" id="apoyan">
-    <h2 class="sponsors-title">Apoyan nuestros proyectos:</h2>
-    <div class="sponsors-logos">
-      <img src="images/logo-lepi.jpg" alt="Logo Lepi" loading="lazy" />
-    </div>
-  </section>
 
   <!-- ===================== FOOTER ===================== -->
   <footer class="site-footer" id="contacto">
@@ -171,7 +177,6 @@
         <li><a href="https://wa.me/91131351262" target="_blank" rel="noopener">WhatsApp</a></li>
       </ul>
     </div>
-    <p class="footer-date">31 de Octubre de 2026</p>
   </footer>
 
   <script src="script.js"></script>

@@ -11,11 +11,13 @@ adef-villa-ortuzar/
 ├── index.html              # Inicio
 ├── clases.html             # Clases
 ├── estudio-de-baile.html   # Estudio de Baile
-├── conciertos.html         # Conciertos (+ Galería de Conciertos)
+├── conciertos.html         # Conciertos (video de fondo + entradas)
 ├── nuestro-espacio.html    # Nuestro Espacio
+├── galeria.html            # Galería de Conciertos
 ├── styles.css              # Estilos compartidos: paleta, hovers y transiciones
 ├── script.js               # Menú móvil + animaciones al hacer scroll
-├── images/                 # Imágenes (descargadas del sitio original)
+├── images/                 # Imágenes (logo ADEF, fotos, etc.)
+├── video/                  # hero-conciertos.mp4 (video de fondo)
 └── README.md
 ```
 

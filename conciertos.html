@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
+  <link rel="icon" type="image/png" href="images/logo-adef.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -18,7 +19,8 @@
   <header class="site-header" id="top">
     <div class="header-inner">
       <a href="index.html" class="brand" aria-label="Asociación de Fomento Villa Ortúzar — Inicio">
-        Asociación de Fomento<br />Villa Ortúzar
+        <img class="brand-logo" src="images/logo-adef.png" alt="ADEF" />
+        <span class="brand-name">Asociación de Fomento<br />Villa Ortúzar</span>
       </a>
 
       <button class="nav-toggle" id="navToggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="primary-nav">
@@ -32,7 +34,7 @@
           <li><a href="estudio-de-baile.html">Estudio de Baile</a></li>
           <li><a href="conciertos.html" class="is-current" aria-current="page">Conciertos</a></li>
           <li><a href="nuestro-espacio.html">Nuestro Espacio</a></li>
-          <li><a href="conciertos.html">Galería de Conciertos</a></li>
+          <li><a href="galeria.html">Galería de Conciertos</a></li>
         </ul>
       </nav>
     </div>
@@ -40,6 +42,9 @@
 
   <!-- ===================== HERO ===================== -->
   <section class="banner-hero" style="background-image: url('images/hero-conciertos.jpg');" aria-label="Conciertos">
+    <video class="banner-hero-video" autoplay muted loop playsinline poster="images/hero-conciertos.jpg">
+      <source src="video/hero-conciertos.mp4" type="video/mp4" />
+    </video>
     <div class="banner-hero-card reveal">
       <h1>Conciertos</h1>
       <p>En esta página podrán ver nuestro Ciclo de Conciertos 2026.</p>
@@ -112,13 +117,6 @@
     </ul>
   </section>
 
-  <!-- ===================== APOYAN NUESTROS PROYECTOS ===================== -->
-  <section class="sponsors reveal" id="apoyan">
-    <h2 class="sponsors-title">Apoyan nuestros proyectos:</h2>
-    <div class="sponsors-logos">
-      <img src="images/logo-lepi.jpg" alt="Logo Lepi" loading="lazy" />
-    </div>
-  </section>
 
   <!-- ===================== FOOTER ===================== -->
   <footer class="site-footer">
@@ -130,7 +128,6 @@
         <li><a href="https://wa.me/91131351262" target="_blank" rel="noopener">WhatsApp</a></li>
       </ul>
     </div>
-    <p class="footer-date">31 de Octubre de 2026</p>
   </footer>
 
   <script src="script.js"></script>

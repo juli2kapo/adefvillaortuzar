@@ -55,15 +55,25 @@ a   { color: inherit; }
   gap: 24px;
 }
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   text-decoration: none;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.brand-logo {
+  height: 40px;
+  width: auto;
+  flex: none;
+}
+.brand-name {
   font-family: var(--sans);
   font-weight: 500;
   font-size: .74rem;
   letter-spacing: 2.5px;
   text-transform: uppercase;
   line-height: 1.5;
-  color: var(--ink);
-  white-space: nowrap;
 }
 
 /* Nav */
@@ -795,4 +805,113 @@ a   { color: inherit; }
   html { scroll-behavior: auto; }
   .reveal { opacity: 1; transform: none; transition: none; }
   *, *::before, *::after { transition-duration: .01ms !important; }
+}
+
+/* ============================================================
+   AJUSTES POSTERIORES (revisión)
+   ============================================================ */
+
+/* Acento cálido para titulares serif de tarjetas/secciones */
+.card-title,
+.tile-title,
+.class-box h3,
+.feature-text h2,
+.welcome-card h2 { color: #8c2126; }
+
+/* --- Color sobre el hero de Clases (la imagen es muy blanca) --- */
+.split-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg,
+    rgba(208, 116, 116, .55) 0%,
+    rgba(140, 33, 38, .30) 38%,
+    rgba(150, 120, 200, .42) 100%);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.split-hero-panel { position: relative; z-index: 1; }
+
+/* --- Conciertos: video de fondo en el hero --- */
+.banner-hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.banner-hero-card { position: relative; z-index: 1; }
+
+/* --- Fecha debajo del logo de sponsors --- */
+.sponsors-date {
+  margin: 26px 0 0;
+  font-family: var(--sans);
+  font-size: .82rem;
+  letter-spacing: 1px;
+  color: var(--ink-soft);
+}
+
+/* --- Contacto rediseñado: datos con iconos + mapa --- */
+.contacto-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: clamp(28px, 5vw, 56px);
+  align-items: center;
+  text-align: left;
+  max-width: 980px;
+  margin: 0 auto;
+}
+.contacto-info { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 20px; }
+.contacto-info li { display: flex; align-items: center; gap: 14px; font-family: var(--sans); font-size: 1.02rem; color: var(--ink-soft); }
+.contacto-info svg { width: 24px; height: 24px; flex: none; color: var(--rose); }
+.contacto-info a { color: var(--ink-soft); text-decoration: none; transition: color .25s var(--ease); }
+.contacto-info a:hover { color: var(--rose); }
+.contacto-map {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(24, 24, 24, .14);
+  line-height: 0;
+}
+.contacto-map iframe { width: 100%; height: 320px; border: 0; display: block; }
+
+/* --- Nuestro Espacio: filas más anchas (menos margen lateral) --- */
+.feature-rows { max-width: 1280px; }
+.feature-row { gap: clamp(28px, 5vw, 72px); }
+.feature-row .feature-media { aspect-ratio: 16 / 10; }
+.feature-row .feature-text p { max-width: 460px; }
+
+/* --- Dibujo medialuna + café (Estudio de Baile) --- */
+.intro { position: relative; }
+.deco-medialuna {
+  position: absolute;
+  top: 50%;
+  right: clamp(8px, 6vw, 90px);
+  transform: translateY(-50%);
+  width: clamp(80px, 9vw, 130px);
+  height: auto;
+  opacity: .95;
+  pointer-events: none;
+}
+
+/* --- Galería de Conciertos (masonry con CSS columns) --- */
+.gallery {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 40px) 24px clamp(50px, 8vw, 90px);
+  column-count: 3;
+  column-gap: 18px;
+}
+.gallery figure { margin: 0 0 18px; break-inside: avoid; overflow: hidden; border-radius: 8px; box-shadow: 0 8px 22px rgba(24, 24, 24, .10); }
+.gallery img { width: 100%; height: auto; display: block; transition: transform .6s var(--ease); }
+.gallery figure:hover img { transform: scale(1.05); }
+
+@media (max-width: 900px) {
+  .gallery { column-count: 2; }
+}
+@media (max-width: 720px) {
+  .contacto-grid { grid-template-columns: 1fr; text-align: center; }
+  .contacto-info { align-items: center; }
+  .deco-medialuna { display: none; }
+  .gallery { column-count: 1; max-width: 460px; }
 }
