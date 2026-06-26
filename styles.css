@@ -868,9 +868,9 @@ a   { color: inherit; }
   position: absolute;
   inset: 0;
   background: linear-gradient(120deg,
-    rgba(208, 116, 116, .55) 0%,
-    rgba(140, 33, 38, .30) 38%,
-    rgba(150, 120, 200, .42) 100%);
+    rgba(224, 152, 46, .5) 0%,
+    rgba(214, 65, 143, .48) 48%,
+    rgba(140, 100, 205, .56) 100%);
   mix-blend-mode: multiply;
   pointer-events: none;
 }
