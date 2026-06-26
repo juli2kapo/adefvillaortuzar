@@ -48,7 +48,7 @@ a   { color: inherit; }
 .header-inner {
   max-width: none;            /* ancho completo de la página */
   margin: 0;
-  padding: 0 32px 0 0;        /* logo pegado a la izquierda; aire a la derecha */
+  padding: 8px 32px 12px 20px; /* algo de aire a la izquierda y abajo */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -64,7 +64,7 @@ a   { color: inherit; }
   padding: 0;               /* sin padding: logo arriba a la izquierda */
 }
 .brand-logo {
-  height: 58px;
+  height: 44px;
   width: auto;
   flex: none;
   display: block;
