@@ -914,7 +914,13 @@ a   { color: inherit; }
   aspect-ratio: auto;
   min-height: clamp(340px, 44vw, 580px);
 }
-.feature-row .feature-text { padding: clamp(28px, 4vw, 56px); }
+.feature-row .feature-text {
+  padding: clamp(28px, 4vw, 56px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;   /* centrado vertical del texto */
+  align-items: center;
+}
 .feature-row .feature-text p { max-width: 460px; }
 
 /* --- Dibujo medialuna + café (Estudio de Baile) --- */
