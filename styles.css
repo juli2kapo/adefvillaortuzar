@@ -587,6 +587,10 @@ a   { color: inherit; }
 /* Botón "Entradas" dentro de las tarjetas de evento */
 .tile .btn-rect { margin-top: 18px; align-self: flex-start; font-size: .85rem; padding: 9px 24px; }
 
+/* Ancla de Melodías Eternas: compensar el header fijo al llegar desde el inicio */
+#melodias-eternas { scroll-margin-top: 90px; }
+.sponsors-logos a { display: inline-block; line-height: 0; }
+
 /* Franja "Con el apoyo de" + logo (Melodías Eternas) */
 .lepi-support { display: flex; align-items: center; gap: 12px; margin: 6px 0 4px; }
 .lepi-support span {
