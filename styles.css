@@ -584,25 +584,16 @@ a   { color: inherit; }
 }
 .banner-hero-card p { font-family: var(--sans); color: var(--ink-soft); margin: 0 0 22px; }
 
-/* Datos dentro de la tarjeta del hero de Conciertos */
-.hero-card-meta {
-  list-style: none;
-  margin: 0 0 26px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.hero-card-meta li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* Subtítulo centrado del hero (Conciertos sobre el video) */
+.hero-banner-sub {
   font-family: var(--sans);
-  font-size: .94rem;
-  color: var(--ink-soft);
+  color: rgba(255, 255, 255, .92);
+  font-size: clamp(.95rem, 2vw, 1.1rem);
+  line-height: 1.6;
+  max-width: 640px;
+  margin: 0 auto 30px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .45);
 }
-.hero-card-meta svg { width: 21px; height: 21px; flex: none; color: var(--rose); }
-.hero-card-meta strong { color: var(--ink); font-weight: 600; }
 
 /* Botón "Entradas" dentro de las tarjetas de evento */
 .tile .btn-rect { margin-top: 18px; align-self: flex-start; font-size: .85rem; padding: 9px 24px; }
