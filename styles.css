@@ -845,6 +845,16 @@ a   { color: inherit; }
    AJUSTES POSTERIORES (revisión)
    ============================================================ */
 
+/* Palabras destacadas en color (Estudio de Baile) */
+.c-orange  { color: #e0982e; }
+.c-purple  { color: #9b59b6; }
+.c-red     { color: #c0392b; }
+.c-blue    { color: #4a78c0; }
+.c-mauve   { color: #b07cc6; }
+.c-magenta { color: #d6418f; }
+.c-pink    { color: #e07ab5; }
+.c-skyblue { color: #6fb3d6; }
+
 /* Acento cálido para titulares serif de tarjetas/secciones */
 .card-title,
 .tile-title,
