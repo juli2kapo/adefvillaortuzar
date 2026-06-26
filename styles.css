@@ -46,9 +46,9 @@ a   { color: inherit; }
   border-bottom: 1px solid var(--line);
 }
 .header-inner {
-  max-width: var(--maxw);
-  margin: 0 auto;
-  padding: 16px 24px;
+  max-width: none;            /* ancho completo de la página */
+  margin: 0;
+  padding: 0 32px 0 0;        /* logo pegado a la izquierda; aire a la derecha */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -57,15 +57,17 @@ a   { color: inherit; }
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   text-decoration: none;
   color: var(--ink);
   white-space: nowrap;
+  padding: 0;               /* sin padding: logo arriba a la izquierda */
 }
 .brand-logo {
-  height: 40px;
+  height: 58px;
   width: auto;
   flex: none;
+  display: block;
 }
 .brand-name {
   font-family: var(--sans);
@@ -91,6 +93,7 @@ a   { color: inherit; }
   letter-spacing: 1px;
   color: var(--ink);
   padding: 6px 0;
+  white-space: nowrap;           /* cada item en un solo renglón */
   transition: color .25s var(--ease);
 }
 .primary-nav a::after {
