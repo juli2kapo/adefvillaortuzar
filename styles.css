@@ -578,16 +578,16 @@ a   { color: inherit; }
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 1080px;
+  max-width: 1120px;
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 40px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;     /* foto arriba */
 }
 .conc-photo {
-  width: 46%;
+  width: 56%;                  /* foto más ancha */
   flex: none;
-  aspect-ratio: 5 / 4;
+  aspect-ratio: 3 / 2;
   object-fit: cover;
   border-radius: 2px;
   box-shadow: 0 24px 55px rgba(0, 0, 0, .55);
@@ -595,8 +595,9 @@ a   { color: inherit; }
 .conc-card {
   position: relative;
   z-index: 3;
-  width: 58%;
-  margin-left: -4%;
+  width: 51%;
+  margin-left: -7%;            /* pisa la esquina de la foto */
+  margin-top: clamp(80px, 12vw, 165px);  /* tarjeta bastante más abajo */
   background: #fff;
   padding: clamp(32px, 4vw, 60px);
   border-radius: 2px;
