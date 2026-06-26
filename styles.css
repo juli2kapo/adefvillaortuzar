@@ -560,30 +560,56 @@ a   { color: inherit; }
 /* Hero con banda de imagen + tarjeta blanca a la derecha (Conciertos) */
 .banner-hero {
   position: relative;
-  min-height: clamp(300px, 30vw, 420px);
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  background-size: cover;
-  background-position: center;
+  justify-content: center;
+  min-height: clamp(360px, 40vw, 540px);
+  padding: clamp(40px, 6vw, 80px) 0;
   overflow: hidden;
 }
-.banner-hero-card {
-  background: #fff;
-  max-width: 500px;
-  margin: clamp(18px, 3.5vw, 52px);
-  padding: clamp(34px, 4vw, 56px);
-  border-radius: 2px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, .3);
+.banner-hero-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(180deg, rgba(40, 10, 10, .45), rgba(28, 8, 8, .58));
 }
-.banner-hero-card h1 {
+/* Efecto de superposición: foto + tarjeta sobre el video */
+.conc-stack {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 40px);
+  display: flex;
+  align-items: center;
+}
+.conc-photo {
+  width: 46%;
+  flex: none;
+  aspect-ratio: 5 / 4;
+  object-fit: cover;
+  border-radius: 2px;
+  box-shadow: 0 24px 55px rgba(0, 0, 0, .55);
+}
+.conc-card {
+  position: relative;
+  z-index: 3;
+  width: 58%;
+  margin-left: -4%;
+  background: #fff;
+  padding: clamp(32px, 4vw, 60px);
+  border-radius: 2px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+}
+.conc-card h1 {
   font-family: var(--serif);
   font-weight: 400;
-  font-size: clamp(2.2rem, 4.5vw, 2.9rem);
+  font-size: clamp(2.2rem, 4.5vw, 3rem);
   margin: 0 0 18px;
   color: var(--ink);
 }
-.banner-hero-card p { font-family: var(--sans); color: var(--ink-soft); font-size: 1.02rem; line-height: 1.65; margin: 0 0 30px; }
+.conc-card p { font-family: var(--sans); color: var(--ink-soft); font-size: 1.02rem; line-height: 1.65; margin: 0 0 28px; }
 
 /* Subtítulo centrado del hero (Conciertos sobre el video) */
 .hero-banner-sub {
@@ -839,8 +865,9 @@ a   { color: inherit; }
   .split-hero-panel { max-width: none; margin: 16px; }
   .class-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
 
-  .banner-hero { justify-content: center; }
-  .banner-hero-card { max-width: none; margin: 16px; }
+  .conc-stack { flex-direction: column; max-width: 460px; align-items: stretch; }
+  .conc-photo { width: 100%; aspect-ratio: 16 / 10; }
+  .conc-card { width: 88%; margin-left: auto; margin-right: auto; margin-top: -34px; }
   .tile .btn-rect { align-self: center; }
 
   .feature-row { grid-template-columns: 1fr; gap: 20px; }
