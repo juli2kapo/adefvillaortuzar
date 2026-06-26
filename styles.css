@@ -587,6 +587,17 @@ a   { color: inherit; }
 /* Botón "Entradas" dentro de las tarjetas de evento */
 .tile .btn-rect { margin-top: 18px; align-self: flex-start; font-size: .85rem; padding: 9px 24px; }
 
+/* Franja "Con el apoyo de" + logo (Melodías Eternas) */
+.lepi-support { display: flex; align-items: center; gap: 12px; margin: 6px 0 4px; }
+.lepi-support span {
+  font-family: var(--sans);
+  font-size: .7rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #9a8f8f;
+}
+.lepi-support img { width: 70px; height: auto; display: block; }
+
 /* Banda de Precios (oscura) */
 .precios {
   background: var(--ink);
