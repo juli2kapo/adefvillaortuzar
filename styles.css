@@ -560,7 +560,7 @@ a   { color: inherit; }
 /* Hero con banda de imagen + tarjeta blanca a la derecha (Conciertos) */
 .banner-hero {
   position: relative;
-  min-height: clamp(380px, 40vw, 540px);
+  min-height: clamp(300px, 30vw, 420px);
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -570,17 +570,17 @@ a   { color: inherit; }
 }
 .banner-hero-card {
   background: #fff;
-  max-width: 540px;
-  margin: clamp(20px, 4vw, 60px);
-  padding: clamp(40px, 5vw, 72px);
+  max-width: 500px;
+  margin: clamp(18px, 3.5vw, 52px);
+  padding: clamp(34px, 4vw, 56px);
   border-radius: 2px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, .3);
 }
 .banner-hero-card h1 {
   font-family: var(--serif);
   font-weight: 400;
-  font-size: clamp(2.4rem, 5vw, 3.2rem);
-  margin: 0 0 20px;
+  font-size: clamp(2.2rem, 4.5vw, 2.9rem);
+  margin: 0 0 18px;
   color: var(--ink);
 }
 .banner-hero-card p { font-family: var(--sans); color: var(--ink-soft); font-size: 1.02rem; line-height: 1.65; margin: 0 0 30px; }
