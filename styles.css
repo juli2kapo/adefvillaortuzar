@@ -894,10 +894,16 @@ a   { color: inherit; }
 }
 .contacto-map iframe { width: 100%; height: 320px; border: 0; display: block; }
 
-/* --- Nuestro Espacio: filas más anchas (menos margen lateral) --- */
-.feature-rows { max-width: 1280px; }
-.feature-row { gap: clamp(28px, 5vw, 72px); }
-.feature-row .feature-media { aspect-ratio: 16 / 10; }
+/* --- Nuestro Espacio: filas a ancho completo (imágenes de borde a borde) --- */
+.feature-rows { max-width: none; margin: 0; padding: 0; gap: 0; }
+.feature-row { gap: 0; align-items: stretch; }
+.feature-row .feature-media {
+  border-radius: 0;
+  box-shadow: none;
+  aspect-ratio: auto;
+  min-height: clamp(340px, 44vw, 580px);
+}
+.feature-row .feature-text { padding: clamp(28px, 4vw, 56px); }
 .feature-row .feature-text p { max-width: 460px; }
 
 /* --- Dibujo medialuna + café (Estudio de Baile) --- */
