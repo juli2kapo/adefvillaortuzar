@@ -402,10 +402,26 @@ a   { color: inherit; }
   object-fit: cover;
   z-index: 0;
 }
-/* Banda roja (Inicio): degradado que reproduce el overlay del sitio original */
+/* Banda roja (Inicio): degradado de respaldo si el video no carga */
 .hero-red {
   background:
     radial-gradient(125% 140% at 36% 28%, #b83139 0%, #8c2126 34%, #5d1818 64%, #300d0d 100%);
+}
+/* Video de fondo del hero (Inicio) */
+.hero-banner-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+/* Velo para legibilidad del título blanco sobre el video */
+.hero-banner-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(180deg, rgba(48, 13, 13, .45) 0%, rgba(48, 13, 13, .60) 100%);
 }
 .hero-banner-inner { position: relative; z-index: 1; padding: 24px; }
 .hero-banner-title {
