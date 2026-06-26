@@ -578,16 +578,16 @@ a   { color: inherit; }
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 1120px;
+  max-width: 1300px;
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 40px);
   display: flex;
   align-items: flex-start;     /* foto arriba */
 }
 .conc-photo {
-  width: 56%;                  /* foto más ancha */
+  width: 60%;                  /* foto ancha y baja (panorámica) */
   flex: none;
-  aspect-ratio: 3 / 2;
+  aspect-ratio: 2 / 1;
   object-fit: cover;
   border-radius: 2px;
   box-shadow: 0 24px 55px rgba(0, 0, 0, .55);
@@ -595,11 +595,11 @@ a   { color: inherit; }
 .conc-card {
   position: relative;
   z-index: 3;
-  width: 51%;
-  margin-left: -7%;            /* pisa la esquina de la foto */
-  margin-top: clamp(80px, 12vw, 165px);  /* tarjeta bastante más abajo */
+  width: 56%;                  /* tarjeta ancha */
+  margin-left: -16%;           /* pisa la esquina de la foto */
+  margin-top: clamp(64px, 9vw, 140px);  /* tarjeta más abajo-derecha */
   background: #fff;
-  padding: clamp(32px, 4vw, 60px);
+  padding: clamp(30px, 3.5vw, 52px);
   border-radius: 2px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
 }
