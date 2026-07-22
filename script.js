@@ -30,6 +30,20 @@
     });
   }
 
+  /* ---------- Conversión Google Ads: clic en WhatsApp ---------- */
+  // Dispara la conversión cada vez que se clickea un enlace de WhatsApp
+  // (botón flotante + "Bailá"/"Entradas"), sin cambiar la apertura en pestaña nueva.
+  document.addEventListener("click", function (e) {
+    var link = e.target.closest('a[href*="wa.me"], a[href*="api.whatsapp"]');
+    if (link && typeof window.gtag === "function") {
+      window.gtag("event", "conversion", {
+        send_to: "AW-18268578575/FLNkCJHfpdQcEI_GkYdE",
+        value: 1.0,
+        currency: "ARS"
+      });
+    }
+  }, true);
+
   /* ---------- Reveal al hacer scroll ---------- */
   var revealEls = [].slice.call(document.querySelectorAll(".reveal"));
   var showAll = function () {
