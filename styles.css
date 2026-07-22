@@ -832,6 +832,8 @@ a   { color: inherit; }
 
 @media (max-width: 720px) {
   .nav-toggle { display: flex; }
+  .brand-name { display: none; }   /* en mobile solo el logo */
+  .brand-logo { height: 40px; }
   .primary-nav {
     position: fixed;
     inset: 70px 0 auto 0;
