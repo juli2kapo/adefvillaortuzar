@@ -1011,3 +1011,48 @@ a   { color: inherit; }
   .deco-medialuna { display: none; }
   .gallery { column-count: 1; max-width: 460px; }
 }
+
+/* ============================================================
+   Botón flotante de WhatsApp (todas las páginas)
+   ============================================================ */
+.wa-fab {
+  position: fixed;
+  right: clamp(16px, 3vw, 28px);
+  bottom: clamp(16px, 3vw, 28px);
+  z-index: 200;
+  width: 58px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #25d366;
+  color: #fff;
+  border-radius: 50%;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .28);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+}
+.wa-fab svg { width: 34px; height: 34px; display: block; }
+.wa-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 10px 26px rgba(37, 211, 102, .55);
+}
+.wa-fab:active { transform: scale(1); }
+
+/* Anillo de pulso sutil para llamar la atención */
+.wa-fab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #25d366;
+  z-index: -1;
+  animation: wa-pulse 2.4s ease-out infinite;
+}
+@keyframes wa-pulse {
+  0%   { transform: scale(1);   opacity: .55; }
+  70%  { transform: scale(1.7); opacity: 0; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wa-fab::before { animation: none; display: none; }
+}
