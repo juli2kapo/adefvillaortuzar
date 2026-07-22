@@ -1034,25 +1034,6 @@ a   { color: inherit; }
 .wa-fab svg { width: 34px; height: 34px; display: block; }
 .wa-fab:hover {
   transform: scale(1.08);
-  box-shadow: 0 10px 26px rgba(37, 211, 102, .55);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .32);
 }
 .wa-fab:active { transform: scale(1); }
-
-/* Anillo de pulso sutil para llamar la atención */
-.wa-fab::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: #25d366;
-  z-index: -1;
-  animation: wa-pulse 2.4s ease-out infinite;
-}
-@keyframes wa-pulse {
-  0%   { transform: scale(1);   opacity: .55; }
-  70%  { transform: scale(1.7); opacity: 0; }
-  100% { transform: scale(1.7); opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .wa-fab::before { animation: none; display: none; }
-}
