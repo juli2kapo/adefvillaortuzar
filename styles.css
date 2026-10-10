@@ -1039,3 +1039,37 @@ a   { color: inherit; }
   box-shadow: 0 10px 26px rgba(0, 0, 0, .32);
 }
 .wa-fab:active { transform: scale(1); }
+
+/* ===================== ENTRADAS ONLINE ===================== */
+.tile-badge { margin: 8px 0 0; font-size: .8rem; font-weight: 600; color: var(--rose); letter-spacing: .5px; }
+.tile-agotado { margin-top: 18px; align-self: flex-start; font-weight: 600; color: #812424; letter-spacing: .5px; }
+.tile button.btn-rect { border: 0; cursor: pointer; }
+.precios-efectivo { margin: 14px 0 0; font-size: .95rem; color: var(--ink-soft); }
+
+.compra { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 0; border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.35); color: var(--ink); }
+.compra::backdrop { background: rgba(24, 24, 24, .6); }
+.compra form { position: relative; padding: 28px 24px 24px; font-family: var(--sans); }
+.compra h2 { font-family: var(--serif); font-weight: 400; font-size: 1.6rem; margin: 0 0 18px; }
+.compra-cerrar { position: absolute; top: 10px; right: 12px; border: 0; background: none; font-size: 1.8rem; line-height: 1; cursor: pointer; color: var(--ink-soft); }
+.compra .campo { display: block; margin: 0 0 14px; font-size: .85rem; font-weight: 500; flex: 1; border: 0; padding: 0; }
+.compra .campo-chico { flex: 0 0 110px; }
+.compra .opcional { font-weight: 400; color: #888; }
+.compra input:not([type=checkbox]), .compra select { display: block; width: 100%; margin-top: 6px; padding: 10px 12px; font: inherit; font-size: 1rem; border: 1px solid #d6d6d6; border-radius: 8px; background: #fff; box-sizing: border-box; }
+.compra input:focus, .compra select:focus { outline: 2px solid var(--rose); outline-offset: 1px; }
+.compra .fila { display: flex; gap: 12px; }
+.compra .meses { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; font-weight: 400; }
+.compra-total { font-size: 1.15rem; margin: 6px 0 14px; }
+.transferencia { background: #f7f1f1; border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; font-size: .9rem; }
+.transferencia p { margin: 4px 0; }
+.copiar { margin-left: 6px; border: 1px solid #812424; color: #812424; background: #fff; border-radius: 6px; font-size: .75rem; padding: 2px 8px; cursor: pointer; }
+.compra-efectivo { font-size: .9rem; font-weight: 600; color: #812424; margin: 0 0 14px; }
+.turnstile { min-height: 65px; margin: 0 0 12px; }
+.compra-error { color: #b00020; font-size: .9rem; margin: 0 0 12px; }
+.compra button.btn-rect { border: 0; cursor: pointer; }
+.compra button.btn-rect:disabled { opacity: .6; cursor: wait; }
+.compra-ok { font-family: var(--serif); font-size: 1.6rem; margin: 0 0 8px; }
+@media (max-width: 520px) {
+  .compra .fila { flex-direction: column; gap: 0; }
+  .compra .campo-chico { flex: 1; }
+  .compra .meses { grid-template-columns: repeat(2, 1fr); }
+}
