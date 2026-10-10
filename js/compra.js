@@ -11,14 +11,21 @@
   var datos = null, tokenTs = null, widgetTs = null;
 
   /* ---------- Turnstile: se pinta cuando están listos el DOM y el script ---------- */
+  var MSG_TURNSTILE = "No pudimos cargar la verificación anti-robots. Recargá la página o escribinos por WhatsApp.";
+  var turnstileCaido = false;
   function pintarTurnstile() {
     if (widgetTs !== null || !window.turnstile || !datos) return;
     widgetTs = window.turnstile.render("#cTurnstile", {
       sitekey: SITEKEY, language: "es",
-      callback: function (tok) { tokenTs = tok; },
+      callback: function (tok) { tokenTs = tok; if (turnstileCaido) { turnstileCaido = false; error(""); } },
       "expired-callback": function () { tokenTs = null; },
+      "error-callback": function () { tokenTs = null; turnstileCaido = true; error(MSG_TURNSTILE); },
     });
   }
+  /* Si el script de Cloudflare nunca carga (bloqueador, red), avisamos en vez de dejar el botón mudo. */
+  setTimeout(function () {
+    if (!window.turnstile) { turnstileCaido = true; error(MSG_TURNSTILE); }
+  }, 10000);
   window.addEventListener("turnstile-listo", pintarTurnstile);
 
   function reiniciarTurnstile() {
@@ -101,6 +108,7 @@
     $("bloquePago").hidden = t === 0;
     $("bloqueTransf").hidden = t === 0;
     $("pagoGratis").hidden = t !== 0;
+    $("hint2x1").hidden = !L.es2x1($("cCategoria").value);
     resumen();
   }
 
@@ -122,6 +130,10 @@
     $("tTitular").textContent = t.titular;
     $("filaTitular").hidden = !t.titular;
 
+    var pedido = params.get("evento") ? evento(params.get("evento")) : null;
+    var aviso = params.get("abono") === "1" ? "" : L.avisoEvento(pedido);
+    $("avisoEvento").textContent = aviso;
+    $("avisoEvento").hidden = !aviso;
     var tipoInicial = "Suelta", eventoInicial = "";
     if (params.get("abono") === "1") {
       tipoInicial = datos.ventaWeb.Trimestral ? "Trimestral" : datos.ventaWeb.Anual ? "Anual" : "Suelta";
@@ -150,11 +162,11 @@
     var archivo = $("cArchivo").files[0] || null;
     var problema = L.validarFormulario(c, t, archivo);
     if (problema) return error(problema);
-    if (!tokenTs) return error("Esperá un segundo a que termine la verificación anti-robots.");
+    if (!tokenTs) return error(turnstileCaido ? MSG_TURNSTILE : "Esperá un segundo a que termine la verificación anti-robots.");
     var boton = $("cEnviar");
     boton.disabled = true;
     var paso = t > 0
-      ? (boton.textContent = "Subiendo comprobante…", subir(archivo, 2).then(function (r) { c.comprobante = { key: r.key, url: r.ufsUrl || r.url }; }))
+      ? (boton.textContent = "Subiendo comprobante…", subir(archivo, 2).then(function (r) { c.comprobante = { key: r.key, url: r.ufsUrl || r.url }; c.comprobanteTipo = archivo.type; }))
       : Promise.resolve();
     paso.then(function () {
       boton.textContent = "Enviando…";
@@ -178,6 +190,9 @@
 
   function listo(r) {
     $("compraListoTexto").textContent = r.evento + " (" + r.fecha + ") · " + r.cantidad + (r.cantidad === 1 ? " entrada" : " entradas") + " · " + L.plata(r.total) + ". Te escribimos a " + r.email + ".";
+    $("compraListoMail").firstChild.nodeValue = r.total === 0
+      ? "Te llega un mail cuando confirmemos tu reserva. Si no lo ves, revisá spam o escribinos por "
+      : "Te llega un mail cuando verifiquemos el pago. Si no lo ves, revisá spam o escribinos por ";
     $("compraForm").hidden = true;
     $("compraListo").hidden = false;
     $("compraListo").scrollIntoView({ block: "start" });

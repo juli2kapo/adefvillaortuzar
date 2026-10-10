@@ -89,6 +89,7 @@
           <form id="compraForm" novalidate>
             <fieldset class="grupo">
               <legend>1. Qué entradas</legend>
+              <p class="compra-error" id="avisoEvento" role="status" hidden></p>
               <label class="campo">Tipo de entrada
                 <select id="cTipo"></select>
               </label>
@@ -100,7 +101,8 @@
                 <div id="cMeses" class="meses"></div>
               </fieldset>
               <div class="fila">
-                <label class="campo">Categoría <select id="cCategoria"></select></label>
+                <label class="campo">Categoría <select id="cCategoria"></select>
+                  <span class="opcional" id="hint2x1" hidden>Con la categoría 2x1 se piden de a 2 (2, 4, 6…).</span></label>
                 <label class="campo campo-chico">Cantidad <input id="cCantidad" type="number" min="1" max="10" value="1" inputmode="numeric" /></label>
               </div>
             </fieldset>
@@ -128,6 +130,7 @@
               </div>
               <div id="cTurnstile" class="turnstile"></div>
               <p class="compra-error" id="cError" role="alert" hidden></p>
+              <p class="opcional">¿Algún problema? Escribinos por <a href="https://wa.me/91131351262" target="_blank" rel="noopener">WhatsApp</a>.</p>
               <button type="submit" class="btn-rect" id="cEnviar">Enviar compra</button>
             </fieldset>
           </form>
@@ -135,7 +138,7 @@
           <div class="listo" id="compraListo" hidden>
             <p class="listo-titulo">¡Recibido!</p>
             <p id="compraListoTexto"></p>
-            <p>Te llega un mail cuando verifiquemos el pago. Si no lo ves, revisá spam o escribinos por <a href="https://wa.me/91131351262" target="_blank" rel="noopener">WhatsApp</a>.</p>
+            <p id="compraListoMail">Te llega un mail cuando verifiquemos el pago. Si no lo ves, revisá spam o escribinos por <a href="https://wa.me/91131351262" target="_blank" rel="noopener">WhatsApp</a>.</p>
             <a class="btn-rect" href="conciertos.html">Volver a Conciertos</a>
           </div>
         </div>
