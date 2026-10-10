@@ -21,11 +21,12 @@
     return "";
   }
   function slug(s) {
-    return String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   }
   function validarFormulario(c, total, archivo) {
     if (c.tipo === "Suelta" && !c.eventoId) return "Elegí el concierto.";
     if (c.tipo === "Trimestral" && (!c.meses || c.meses.length !== 3)) return "Elegí 3 meses para el abono trimestral.";
+    if (c.cantidad !== undefined && !(Number.isInteger(c.cantidad) && c.cantidad >= 1 && c.cantidad <= 10)) return "La cantidad tiene que ser de 1 a 10.";
     if (!c.nombre || c.nombre.trim().length < 2) return "Completá tu nombre y apellido.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((c.email || "").trim())) return "Revisá tu mail.";
     if (!/^[0-9+()\s-]{6,30}$/.test((c.telefono || "").trim())) return "Revisá tu teléfono.";

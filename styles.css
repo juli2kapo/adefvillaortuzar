@@ -1040,36 +1040,83 @@ a   { color: inherit; }
 }
 .wa-fab:active { transform: scale(1); }
 
+
 /* ===================== ENTRADAS ONLINE ===================== */
+/* Tarjetas de conciertos.html */
 .tile-badge { margin: 8px 0 0; font-size: .8rem; font-weight: 600; color: var(--rose); letter-spacing: .5px; }
 .tile-agotado { margin-top: 18px; align-self: flex-start; font-weight: 600; color: #812424; letter-spacing: .5px; }
-.tile button.btn-rect { border: 0; cursor: pointer; }
-.precios-efectivo { margin: 14px 0 0; font-size: .95rem; color: var(--ink-soft); }
+.precios-efectivo { margin: 14px 0 0; font-size: .95rem; color: #d9cfcf; }
 
-.compra { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 0; border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.35); color: var(--ink); }
-.compra::backdrop { background: rgba(24, 24, 24, .6); }
-.compra form { position: relative; padding: 28px 24px 24px; font-family: var(--sans); }
-.compra h2 { font-family: var(--serif); font-weight: 400; font-size: 1.6rem; margin: 0 0 18px; }
-.compra-cerrar { position: absolute; top: 10px; right: 12px; border: 0; background: none; font-size: 1.8rem; line-height: 1; cursor: pointer; color: var(--ink-soft); }
-.compra .campo { display: block; margin: 0 0 14px; font-size: .85rem; font-weight: 500; flex: 1; border: 0; padding: 0; }
-.compra .campo-chico { flex: 0 0 110px; }
-.compra .opcional { font-weight: 400; color: #888; }
-.compra input:not([type=checkbox]), .compra select { display: block; width: 100%; margin-top: 6px; padding: 10px 12px; font: inherit; font-size: 1rem; border: 1px solid #d6d6d6; border-radius: 8px; background: #fff; box-sizing: border-box; }
-.compra input:focus, .compra select:focus { outline: 2px solid var(--rose); outline-offset: 1px; }
-.compra .fila { display: flex; gap: 12px; }
-.compra .meses { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; font-weight: 400; }
-.compra-total { font-size: 1.15rem; margin: 6px 0 14px; }
-.transferencia { background: #f7f1f1; border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; font-size: .9rem; }
-.transferencia p { margin: 4px 0; }
-.copiar { margin-left: 6px; border: 1px solid #812424; color: #812424; background: #fff; border-radius: 6px; font-size: .75rem; padding: 2px 8px; cursor: pointer; }
-.compra-efectivo { font-size: .9rem; font-weight: 600; color: #812424; margin: 0 0 14px; }
-.turnstile { min-height: 65px; margin: 0 0 12px; }
-.compra-error { color: #b00020; font-size: .9rem; margin: 0 0 12px; }
-.compra button.btn-rect { border: 0; cursor: pointer; }
-.compra button.btn-rect:disabled { opacity: .6; cursor: wait; }
-.compra-ok { font-family: var(--serif); font-size: 1.6rem; margin: 0 0 8px; }
-@media (max-width: 520px) {
-  .compra .fila { flex-direction: column; gap: 0; }
-  .compra .campo-chico { flex: 1; }
-  .compra .meses { grid-template-columns: repeat(2, 1fr); }
+/* Página entradas.html */
+.entradas { padding: clamp(28px, 5vw, 64px) 16px clamp(48px, 7vw, 96px); }
+.entradas-inner { max-width: var(--maxw); margin: 0 auto; }
+.entradas-volver { margin: 0 0 8px; font-size: .9rem; }
+.entradas-volver a { color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid var(--rose-soft); }
+.entradas-volver a:hover { color: #812424; border-color: #812424; }
+.entradas-titulo { font-family: var(--serif); font-weight: 400; font-size: clamp(2rem, 5vw, 3rem); margin: 0 0 clamp(24px, 4vw, 44px); }
+.entradas-cargando { color: var(--ink-soft); }
+.entradas-fallo { max-width: 560px; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: #f7f1f1; }
+.entradas-fallo p { margin: 0 0 16px; }
+
+.entradas-grid { display: grid; grid-template-columns: minmax(280px, 400px) minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); align-items: start; }
+.entradas-grid[hidden] { display: none; }
+
+/* Resumen (izquierda) */
+.resumen { position: sticky; top: 108px; padding: 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); box-shadow: 0 8px 22px rgba(24, 24, 24, .06); }
+.resumen-media { overflow: hidden; border-radius: 8px; aspect-ratio: 4 / 3; background: #f1e9e9; }
+.resumen-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.resumen-titulo { font-family: var(--serif); font-weight: 400; font-size: 1.5rem; margin: 18px 0 6px; color: var(--ink); }
+.resumen-texto { margin: 0; font-size: .95rem; color: var(--ink-soft); }
+.resumen-badge { margin: 8px 0 0; font-size: .85rem; font-weight: 600; color: var(--rose); letter-spacing: .5px; }
+.resumen-total { display: flex; justify-content: space-between; align-items: baseline; margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: 1rem; }
+.resumen-total strong { font-family: var(--serif); font-weight: 400; font-size: 1.9rem; color: var(--ink); }
+.transferencia { background: #f7f1f1; border-radius: 8px; padding: 12px 14px; margin: 16px 0 0; font-size: .9rem; }
+.transferencia[hidden] { display: none; }
+.transferencia p { margin: 4px 0; overflow-wrap: anywhere; }
+.copiar { margin-left: 6px; border: 1px solid #812424; color: #812424; background: #fff; border-radius: 6px; font: inherit; font-size: .75rem; padding: 2px 8px; cursor: pointer; }
+.copiar:hover { background: #812424; color: #fff; }
+.resumen-efectivo { margin: 16px 0 0; font-size: .9rem; font-weight: 600; color: #812424; }
+
+/* Formulario (derecha) */
+.formulario { min-width: 0; font-family: var(--sans); }
+.grupo { border: 0; padding: 0; margin: 0 0 clamp(28px, 4vw, 40px); min-width: 0; }
+.grupo > legend { font-family: var(--serif); font-weight: 400; font-size: 1.4rem; padding: 0 0 12px; margin: 0 0 16px; width: 100%; border-bottom: 1px solid var(--line); float: left; }
+.grupo > legend + * { clear: both; }
+.formulario .campo { display: block; margin: 0 0 16px; font-size: .88rem; font-weight: 500; flex: 1; border: 0; padding: 0; min-width: 0; }
+.formulario .campo[hidden] { display: none; }
+.formulario .campo-chico { flex: 0 0 120px; }
+.formulario .opcional { font-weight: 400; color: #888; }
+.formulario input:not([type=checkbox]):not([type=file]), .formulario select { display: block; width: 100%; margin-top: 6px; padding: 11px 12px; font: inherit; font-size: 1rem; font-weight: 400; color: var(--ink); border: 1px solid #d6d6d6; border-radius: 8px; background: #fff; }
+.formulario input:focus, .formulario select:focus { outline: 2px solid var(--rose); outline-offset: 1px; border-color: transparent; }
+.formulario .fila { display: flex; gap: 14px; }
+.formulario .campo-meses legend { padding: 0; font-size: .88rem; font-weight: 500; }
+.formulario .meses { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; font-weight: 400; }
+.formulario .meses label { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid #d6d6d6; border-radius: 8px; cursor: pointer; }
+.formulario .meses label:has(input:checked) { border-color: var(--rose); background: #fbf3f3; }
+
+.pago-ayuda, .pago-gratis { margin: 0 0 14px; font-size: .95rem; color: var(--ink-soft); }
+.archivo { display: flex; align-items: center; gap: 14px; padding: 14px; margin: 0 0 18px; border: 1.5px dashed #c9bcbc; border-radius: 8px; background: #fcfafa; cursor: pointer; position: relative; }
+.archivo:hover { border-color: var(--rose); }
+.archivo:focus-within { outline: 2px solid var(--rose); outline-offset: 2px; }
+.archivo input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.archivo-boton { flex: none; padding: 8px 16px; border-radius: 8px; background: #812424; color: #fff; font-size: .88rem; font-weight: 500; }
+.archivo-nombre { font-size: .88rem; color: var(--ink-soft); overflow-wrap: anywhere; min-width: 0; }
+#bloquePago[hidden], .pago-gratis[hidden] { display: none; }
+
+.turnstile { min-height: 65px; margin: 0 0 14px; }
+.compra-error { color: #b00020; font-size: .92rem; margin: 0 0 14px; }
+.compra-error[hidden] { display: none; }
+.formulario button.btn-rect { border: 0; cursor: pointer; font-family: var(--sans); }
+.formulario button.btn-rect:disabled { opacity: .6; cursor: wait; }
+
+.listo { padding: clamp(20px, 4vw, 36px); border: 1px solid var(--line); border-radius: 8px; background: #f7f1f1; }
+.listo[hidden], #compraForm[hidden] { display: none; }
+.listo-titulo { font-family: var(--serif); font-size: 2rem; margin: 0 0 10px; }
+
+@media (max-width: 760px) {
+  .entradas-grid { grid-template-columns: minmax(0, 1fr); }
+  .resumen { position: static; }
+  .formulario .fila { flex-direction: column; gap: 0; }
+  .formulario .campo-chico { flex: 1; }
+  .formulario .meses { grid-template-columns: repeat(2, 1fr); }
 }
