@@ -112,7 +112,7 @@
     var aLaVenta = datos.eventos.filter(function (e) { return !e.pasado && e.disponibles > 0; });
     opciones($("cEvento"), [["", "Elegí el concierto…"]].concat(aLaVenta.map(function (e) { return [e.id, e.nombre + " — " + e.fecha]; })));
     $("cMeses").innerHTML = datos.mesesTrimestre.map(function (m) {
-      return '<label><input type="checkbox" value="' + m + '" /> ' + L.MESES_LARGOS[m] + "</label>";
+      return '<label><input type="checkbox" value="' + esc(m) + '" /> ' + esc(L.MESES_LARGOS[m]) + "</label>";
     }).join("");
     opciones($("cCategoria"), datos.categorias.map(function (c) { return [c.nombre, c.nombre]; }));
     var t = datos.transferencia;
@@ -123,7 +123,7 @@
     $("filaTitular").hidden = !t.titular;
 
     var tipoInicial = "Suelta", eventoInicial = "";
-    if (params.get("abono")) {
+    if (params.get("abono") === "1") {
       tipoInicial = datos.ventaWeb.Trimestral ? "Trimestral" : datos.ventaWeb.Anual ? "Anual" : "Suelta";
     } else if (params.get("evento") && aLaVenta.some(function (e) { return e.id === params.get("evento"); })) {
       eventoInicial = params.get("evento");
@@ -182,12 +182,14 @@
     $("compraListo").hidden = false;
     $("compraListo").scrollIntoView({ block: "start" });
     $("compraForm").reset();
+    actualizar();
     reiniciarTurnstile();
   }
 
   /* Tras un 409 (cupo agotado): refresca concierto y cupos sin perder lo que escribió. */
   function recargarDatos() {
     var antes = leerFormulario();
+    var mesesAntes = antes.meses;
     return fetch(API + "/api/publico").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
       if (!d) return;
       datos = d;
@@ -196,6 +198,7 @@
       $("cCategoria").value = antes.categoria;
       $("cCantidad").value = antes.cantidad;
       if (antes.eventoId) $("cEvento").value = antes.eventoId;
+      [].slice.call($("cMeses").querySelectorAll("input")).forEach(function (i) { i.checked = mesesAntes.indexOf(Number(i.value)) >= 0; });
       actualizar();
     }).catch(function () {});
   }

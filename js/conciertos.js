@@ -27,8 +27,10 @@
         boton + "</article>";
     }).join("");
     if (primeraVez && location.hash) {
-      var destino = document.getElementById(decodeURIComponent(location.hash.slice(1)));
-      if (destino) destino.scrollIntoView();
+      try {
+        var destino = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+        if (destino) destino.scrollIntoView();
+      } catch (e) { /* hash mal formado: se ignora */ }
     }
   }
 
