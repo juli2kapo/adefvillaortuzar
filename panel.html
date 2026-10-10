@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="robots" content="noindex, nofollow">
+    <script src="js/ut-client.js" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Concert Manager (panel privado)</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/xlsx-js-style/dist/xlsx.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@500;700&family=Courier+New&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- GLOBAL & UTILITIES --- */
+        :root { --primary: #6366f1; --bg-dark: #0f172a; --bg-light: #f1f5f9; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-light); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* --- NAVIGATION & LAYOUT --- */
+        #app-header { background: white; padding: 10px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; z-index: 50; }
+        #app-nav { background: white; padding: 5px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: center; gap: 8px; flex-shrink: 0; }
+        .nav-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 8px; color: #64748b; font-size: 0.75rem; font-weight: 600; transition: all 0.2s; border: 1px solid transparent; }
+        .nav-btn:hover { background: #f8fafc; }
+        .nav-btn.active { background: #e0e7ff; color: var(--primary); border-color: #c7d2fe; }
+        .nav-btn svg { width: 20px; height: 20px; margin-bottom: 2px; }
+
+        #main-content { flex: 1; overflow: hidden; position: relative; }
+        .view-section { display: none; height: 100%; overflow-y: auto; padding-bottom: 80px; }
+        .view-section.active { display: block; animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- MANAGER STYLES --- */
+        .container-scroll { max-width: 900px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .card-header { display: flex; align-items: center; gap: 10px; font-weight: 700; color: #1e293b; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; }
+        .input-group { margin-bottom: 12px; }
+        .input-label { display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+        .input-field { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.9rem; }
+        .input-field:focus { border-color: var(--primary); outline: none; ring: 2px var(--primary); }
+        .btn { width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 8px; transition: all 0.2s; cursor: pointer; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #4f46e5; }
+        .btn-secondary { background: #1e293b; color: white; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-danger { background: #fee2e2; color: #ef4444; }
+        .btn-warning { background: #fef3c7; color: #d97706; }
+        .list-item { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 5px; }
+        .month-btn { background: white; border: 1px solid #cbd5e1; padding: 8px; text-align: center; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #64748b; }
+        .month-btn.selected { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; box-shadow: 0 2px 4px rgba(99,102,241,0.3); }
+
+        /* --- DESIGNER STYLES --- */
+        #view-designer { display: none; flex-direction: row; height: 100%; overflow: hidden; padding: 0; }
+        #view-designer.active { display: flex; }
+        #designer-sidebar { width: 300px; background: #0f172a; color: white; border-right: 1px solid #334155; display: flex; flex-direction: column; z-index: 20; flex-shrink: 0; }
+        #designer-tabs { display: flex; background: #020617; }
+        .d-tab { flex: 1; padding: 12px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; text-align: center; color: #64748b; border-bottom: 2px solid transparent; cursor: pointer; }
+        .d-tab.active { color: #818cf8; border-color: #818cf8; background: rgba(129, 140, 248, 0.1); }
+        #designer-workspace { flex: 1; background: #0f172a; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 20px 20px; }
+        #ticketCanvas { background-color: white; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); transform-origin: center center; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); flex-shrink: 0; }
+        .ticket-field { position: absolute; z-index: 10; cursor: move; border: 1px dashed rgba(0,0,0,0.1); padding: 4px; white-space: nowrap; user-select: none; line-height: 1.2; }
+        .ticket-field:hover { border: 1px solid #38bdf8; background: rgba(56, 189, 248, 0.1); }
+        .ticket-field.selected { border: 2px solid #38bdf8; z-index: 100; box-shadow: 0 0 10px rgba(56,189,248,0.3); }
+        .qr-placeholder { display: flex; align-items: center; justify-content: center; pointer-events: none; }
+        .qr-placeholder img { display: block; }
+
+        /* --- PRINT STYLES --- */
+        @media print {
+            body * { visibility: hidden; }
+            #ticketCanvas, #ticketCanvas * { visibility: visible; }
+            #ticketCanvas { position: fixed; left: 0; top: 0; margin: 0; box-shadow: none; border: none; transform: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; width: auto; height: auto; }
+            .ticket-field { border: none !important; background: transparent !important; }
+        }
+
+        #toast { visibility: hidden; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; font-size: 0.9rem; z-index: 2000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); display: flex; gap: 8px; align-items: center; }
+        #toast.show { visibility: visible; animation: slideUp 0.3s forwards; }
+        @keyframes slideUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+        /* Loading Overlay */
+        #loader { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <i data-lucide="loader-2" class="animate-spin w-10 h-10 mb-4 text-indigo-500"></i>
+        <div class="text-sm font-bold uppercase tracking-widest text-indigo-300">Conectando...</div>
+    </div>
+
+    <header id="app-header">
+        <div class="flex items-center gap-2 font-bold text-indigo-600 text-lg">
+            <i data-lucide="music-4"></i> Concert Manager <span class="text-[10px] bg-indigo-100 px-2 rounded text-indigo-800">PANEL PRIVADO</span>
+        </div>
+        <div class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-mono" id="yearDisplay">...</div>
+    </header>
+
+    <nav id="app-nav">
+        <button class="nav-btn active" onclick="switchTab('sales', this)"><i data-lucide="ticket"></i> Ventas</button>
+        <button class="nav-btn" onclick="switchTab('compras', this)"><i data-lucide="inbox"></i> Compras web <span id="badgeCompras" class="text-[10px] bg-red-500 text-white rounded-full px-1"></span></button>
+        <button class="nav-btn" onclick="switchTab('events', this)"><i data-lucide="calendar"></i> Eventos</button>
+        <button class="nav-btn" onclick="switchTab('designer', this)"><i data-lucide="layout-template"></i> Diseño</button>
+        <button class="nav-btn" onclick="switchTab('reports', this)"><i data-lucide="bar-chart-3"></i> Reportes</button>
+        <button class="nav-btn" onclick="switchTab('config', this)"><i data-lucide="settings"></i> Config</button>
+    </nav>
+
+    <div id="main-content">
+
+        <div id="view-sales" class="view-section active container-scroll">
+            <div class="card border-l-4 border-indigo-500">
+                <div class="card-header"><i data-lucide="shopping-cart" class="text-indigo-500"></i> Nueva Venta</div>
+                
+                <div class="input-group">
+                    <label class="input-label">1. Tipo de Entrada</label>
+                    <select id="ticketDuration" class="input-field" onchange="toggleSaleTypeUI()">
+                        <option value="Suelta">Entrada Suelta (1 Evento)</option>
+                        <option value="Trimestral">Abono Trimestral</option>
+                        <option value="Anual">Abono Anual</option>
+                    </select>
+                </div>
+
+                <div id="eventSelectBox" class="input-group">
+                    <label class="input-label">2. Seleccionar Evento</label>
+                    <select id="saleEventSelect" class="input-field" onchange="calculateTotal()"></select>
+                </div>
+
+                <div id="trimestreBox" class="input-group" style="display:none;">
+                    <label class="input-label">2. Seleccionar Meses</label>
+                    <div id="monthGridContainer" class="month-grid"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="input-group">
+                        <label class="input-label">3. Categoría</label>
+                        <select id="saleCategory" class="input-field" onchange="calculateTotal()"></select>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Cantidad</label>
+                        <input type="number" id="ticketAmount" class="input-field" value="1" min="1" oninput="calculateTotal()">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">4. Datos del Asistente</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="attendeeName" class="input-field" placeholder="Nombre Completo">
+                        <input type="text" id="attendeeCuit" class="input-field" placeholder="DNI / CUIT (Opcional)">
+                    </div>
+                </div>
+
+                <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-lg text-center mb-4">
+                    <div class="text-xs text-indigo-400 font-bold uppercase tracking-wider">Total a Pagar</div>
+                    <div class="text-3xl font-black text-indigo-700" id="displayPrice">$0</div>
+                </div>
+
+                <button onclick="processSale()" class="btn btn-primary"><i data-lucide="check-circle"></i> Confirmar Venta</button>
+            </div>
+
+            <div class="mt-8">
+                <div class="flex justify-between items-end mb-2">
+                    <h3 class="font-bold text-slate-500 uppercase text-xs">Historial Reciente (Últimos 10)</h3>
+                    <button onclick="loadAllTicketsForManagement()" class="text-xs text-indigo-600 font-bold hover:underline">Ver Todas</button>
+                </div>
+                <div id="latestSalesList"></div>
+            </div>
+            
+            <div id="managementListContainer" class="hidden mt-4 pt-4 border-t border-slate-300">
+                <h3 class="font-bold text-slate-800 mb-2">Gestión de Todas las Entradas</h3>
+                <input type="text" id="searchTicketInput" onkeyup="filterTicketList()" placeholder="Buscar por nombre..." class="input-field mb-2">
+                <div id="fullTicketList" class="max-h-96 overflow-y-auto space-y-2"></div>
+            </div>
+        </div>
+
+        <div id="view-compras" class="view-section container-scroll">
+            <div class="card">
+                <div class="card-header"><i data-lucide="inbox"></i> Compras web</div>
+                <p class="text-xs text-slate-500 mb-3">Revisá el comprobante en la cuenta antes de aprobar. Al aprobar se manda la entrada con QR por mail; al rechazar, un aviso.</p>
+                <div id="listaComprasWeb" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <div id="view-events" class="view-section container-scroll">
+            <div class="card">
+                <div class="card-header"><i data-lucide="plus-circle"></i> Nuevo Evento</div>
+                <div class="input-group">
+                    <label class="input-label">Nombre del Evento</label>
+                    <input type="text" id="eventName" class="input-field" placeholder="Ej: Concierto de Rock">
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label">Tipo de Evento</label>
+                    <select id="eventType" class="input-field">
+                        <option value="Ciclo">Ciclo de Conciertos (Estándar)</option>
+                        <option value="Privado">Evento Privado (No incluye Abonos)</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="input-label">Mes</label>
+                        <select id="eventMonth" class="input-field"></select>
+                    </div>
+                    <div>
+                        <label class="input-label">Día</label>
+                        <input type="number" id="eventDay" class="input-field" placeholder="DD" min="1" max="31">
+                    </div>
+                    <div>
+                        <label class="input-label">Hora</label>
+                        <input type="time" id="eventTime" class="input-field">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    <div><label class="input-label">Cupo</label><input type="number" id="eventCupo" class="input-field" value="80" min="0"></div>
+                    <div><label class="input-label">Texto de hora en la web</label><input id="eventTextoFecha" class="input-field" placeholder="a las 18hs (vacío = sin hora)"></div>
+                </div>
+                <div class="input-group mt-2"><label class="input-label">Descripción en la web</label><input id="eventDescripcion" class="input-field" maxlength="300" placeholder="Ej: Ópera al atardecer"></div>
+                <div class="input-group">
+                    <label class="input-label">Imagen de la tarjeta</label>
+                    <input type="file" id="eventImagenArchivo" accept="image/*" class="text-xs" onchange="subirImagenEvento(this)">
+                    <img id="eventImagenPreview" class="mt-2 max-h-24 rounded hidden">
+                    <input type="hidden" id="eventImagen">
+                    <input type="hidden" id="eventApoyoLogo">
+                </div>
+                <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="eventVisibleWeb"> Mostrar en la web (conciertos.html)</label>
+                <button onclick="saveNewEvent()" class="btn btn-secondary mt-4"><span id="btnGuardarEvento">Guardar Evento</span></button>
+            </div>
+            <div id="activeEventsList"></div>
+        </div>
+
+        <div id="view-designer" class="view-section">
+            <div id="designer-sidebar">
+                <div id="designer-tabs">
+                    <div onclick="switchTemplate('Suelta')" id="tab-Suelta" class="d-tab active">Suelta</div>
+                    <div onclick="switchTemplate('Trimestral')" id="tab-Trimestral" class="d-tab">Trimestral</div>
+                    <div onclick="switchTemplate('Anual')" id="tab-Anual" class="d-tab">Anual</div>
+                </div>
+
+                <div class="p-4 overflow-y-auto flex-1 space-y-4 custom-scrollbar">
+                    
+                    <div id="printContextBanner" class="hidden bg-indigo-900 border border-indigo-500 p-3 rounded text-xs">
+                        <div class="font-bold text-indigo-300 mb-1 flex items-center gap-1"><i data-lucide="printer" width="12"></i> MODO IMPRESIÓN</div>
+                        <div class="text-indigo-100 mb-2">Imprimiendo para: <b id="printContextName" class="text-white">...</b></div>
+                        <button onclick="clearPrintContext()" class="w-full bg-indigo-800 hover:bg-indigo-700 py-1 rounded text-indigo-200 text-xs">Cancelar / Volver a Editar</button>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 uppercase block mb-1">Imagen de Fondo</label>
+                        <input type="file" id="bgInput" accept="image/*" class="block w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-slate-700 file:text-white hover:file:bg-slate-600 cursor-pointer">
+                        <p class="text-[10px] text-slate-500 mt-1">* Se guardará en DB como Base64</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-500 uppercase">Ancho (px)</label>
+                            <input type="number" id="canvasWidth" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 uppercase">Alto (px)</label>
+                            <input type="number" id="canvasHeight" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 uppercase block mb-1">Agregar Elemento</label>
+                        <div class="flex gap-2">
+                            <button onclick="addNewField()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-2 rounded border border-slate-600">+ Texto</button>
+                            <button onclick="addQRField()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-2 rounded border border-slate-600">+ QR</button>
+                        </div>
+                    </div>
+
+                    <div id="styleEditor" class="opacity-50 pointer-events-none transition-opacity bg-slate-800 border border-slate-700 p-3 rounded">
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-600">
+                            <span class="text-xs font-bold text-indigo-400">Propiedades</span>
+                            <button onclick="deleteActiveField()" class="text-red-400 hover:text-red-300"><i data-lucide="trash-2" width="14"></i></button>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <input type="text" id="fieldLabelInput" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white" placeholder="Texto">
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="number" id="fieldSize" class="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white" placeholder="Tamaño">
+                                <input type="color" id="fieldColor" class="w-full h-7 bg-transparent cursor-pointer rounded">
+                            </div>
+
+                            <select id="fieldFont" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white">
+                                <option value="Inter">Inter (Sans)</option>
+                                <option value="Oswald">Oswald (Bold)</option>
+                                <option value="Courier New">Monospace</option>
+                                <option value="serif">Serif</option>
+                            </select>
+
+                            <div class="flex gap-1">
+                                <button onclick="toggleBold()" class="flex-1 bg-slate-700 text-white text-xs py-1 rounded font-bold hover:bg-slate-600">B</button>
+                                <button onclick="toggleItalic()" class="flex-1 bg-slate-700 text-white text-xs py-1 rounded italic hover:bg-slate-600">I</button>
+                            </div>
+
+                            <div class="pt-2 mt-2 border-t border-slate-700">
+                                <label class="text-[10px] text-orange-400 uppercase font-bold block mb-1">Vincular Dato (Auto-Relleno)</label>
+                                <select id="fieldIdMapper" onchange="updateFieldIdMap()" class="w-full bg-slate-900 border border-orange-900 text-orange-100 rounded px-2 py-1 text-xs">
+                                    <option value="">Texto Estático</option>
+                                    <option value="f_name">Nombre Asistente</option>
+                                    <option value="f_event">Nombre Evento</option>
+                                    <option value="f_date">Fecha Evento (DD/MM)</option>
+                                    <option value="f_time">Hora Evento (HH:MM hs)</option>
+                                    <option value="f_cuit">DNI / CUIT</option>
+                                    <option value="f_category">Categoría</option>
+                                    <option value="f_qr">Código QR (Dato Variable)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-900 border-t border-slate-800 space-y-2">
+                    <button onclick="saveAllTemplates()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded text-xs font-semibold">Guardar Diseño en Nube</button>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="downloadTicketImage()" class="bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded font-bold flex justify-center items-center gap-1 text-xs">
+                            <i data-lucide="image"></i> DESCARGAR PNG
+                        </button>
+                        <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-600 text-white py-3 rounded font-bold flex justify-center items-center gap-1 text-xs">
+                            <i data-lucide="printer"></i> PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="designer-workspace">
+                <div id="ticketCanvas">
+                    <img id="ticketBgImage" src="" style="width:100%; height:100%; position:absolute; top:0; left:0; object-fit:fill; pointer-events:none;">
+                </div>
+                <div id="zoomLevelDisplay" class="absolute bottom-4 right-4 bg-black/50 text-white text-xs px-3 py-1 rounded-full pointer-events-none">100%</div>
+            </div>
+        </div>
+
+        <div id="view-reports" class="view-section container-scroll">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="card bg-indigo-50 border-indigo-200">
+                    <div id="financeSummary"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">Exportar Datos</div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Filtrar para Evento:</label>
+                        <select id="exportFilterEvent" class="input-field">
+                            <option value="ALL">Todo el Historial</option>
+                            </select>
+                        <p class="text-[10px] text-slate-500 mt-1">
+                            * Si seleccionas un Evento Privado, se excluirán abonos trimestrales/anuales.
+                        </p>
+                    </div>
+
+                    <button onclick="exportAllSales()" class="btn btn-secondary mb-3"><i data-lucide="file-spreadsheet"></i> Descargar Excel / CSV</button>
+                    <div class="text-[10px] text-slate-500 mb-2 italic">Incluye tabla resumen (Cheat Sheet)</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-config" class="view-section container-scroll">
+            <div class="card">
+                <div class="card-header"><i data-lucide="settings"></i> Configuración General</div>
+                <div class="input-group">
+                    <label class="input-label">Año de Temporada</label>
+                    <input type="number" id="configYear" class="input-field">
+                </div>
+                
+                <h4 class="font-bold text-sm text-slate-700 mb-2 mt-4 border-b border-slate-200 pb-1">Precios Base ($)</h4>
+                <div class="grid grid-cols-3 gap-2">
+                    <div><label class="input-label">Suelta</label><input type="number" id="priceBase" class="input-field"></div>
+                    <div><label class="input-label">Trimestral</label><input type="number" id="priceTrimestral" class="input-field"></div>
+                    <div><label class="input-label">Anual</label><input type="number" id="priceAnual" class="input-field"></div>
+                </div>
+
+                <h4 class="font-bold text-sm text-slate-700 mb-2 mt-6 border-b border-slate-200 pb-1">Categorías de Entrada</h4>
+                <div class="bg-slate-50 p-3 rounded border border-slate-200 mb-3">
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="newCatName" placeholder="Nombre (Ej: Jubilado)" class="input-field flex-1 text-xs">
+                        <input type="number" id="newCatPercent" placeholder="% Pago" class="input-field w-20 text-xs" max="100">
+                        <button onclick="addNewCategory()" class="bg-indigo-600 text-white rounded px-3 hover:bg-indigo-700"><i data-lucide="plus"></i></button>
+                    </div>
+                    <div id="categoryListContainer" class="space-y-1"></div>
+                </div>
+
+                <h4 class="font-bold text-sm text-slate-700 mb-2 mt-6 border-b border-slate-200 pb-1">Venta online</h4>
+                <p class="text-xs text-slate-500 mb-2">Las entradas sueltas siempre se venden online. Las categorías con "Web" tildado aparecen en la página.</p>
+                <label class="flex items-center gap-2 text-sm mb-1"><input type="checkbox" id="ventaWebTrimestral"> Vender Abono Trimestral online</label>
+                <label class="flex items-center gap-2 text-sm mb-3"><input type="checkbox" id="ventaWebAnual"> Vender Abono Anual online</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <div><label class="input-label">Alias</label><input id="transAlias" class="input-field"></div>
+                    <div><label class="input-label">CBU</label><input id="transCbu" class="input-field"></div>
+                    <div><label class="input-label">Titular</label><input id="transTitular" class="input-field"></div>
+                </div>
+
+                <button onclick="saveConfig()" class="btn btn-primary mt-6">Guardar Configuración en Cloud</button>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"><i data-lucide="bell"></i><span id="toastMsg">Notificación</span></div>
+
+    <script type="module">
+        
+
+        // ==========================================
+        // CONEXIÓN AL WORKER (adef-api)
+        // ==========================================
+        // Todo pasa por adef-api; la clave viene en el link (?clave=…) y no se guarda.
+        const API = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? "http://127.0.0.1:8787" : "https://api.adefvillaortuzar.com.ar";
+        const CLAVE = new URLSearchParams(location.search).get("clave") || "";
+        async function api(metodo, ruta, cuerpo) {
+            const res = await fetch(API + ruta, {
+                method: metodo,
+                headers: { "content-type": "application/json", "x-clave": CLAVE },
+                body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
+            });
+            if (!res.ok) throw new Error((await res.text()) || `Error ${res.status}`);
+            return res.json();
+        }
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        const esAprobada = (t) => (t.estado || "aprobada") === "aprobada";
+        const fechaVenta = (t) => (t.creadaEn ? Date.parse(t.creadaEn) : parseInt(t.id) || 0);
+        let ocupacion = {};
+        let editandoEventoId = null;
+
+        // Make functions globally available since we are inside a module
+        window.initApp = async function() {
+            try {
+                if (!CLAVE) {
+                    document.getElementById('loader').innerHTML = '<div class="text-white text-xl font-bold">Panel privado</div>';
+                    return;
+                }
+                await loadAllData();
+                
+                // Initialize UI
+                lucide.createIcons();
+                const monthSel = document.getElementById('eventMonth');
+                fullMonths.forEach((m, i) => {
+                    const opt = document.createElement('option'); opt.value = i; opt.innerText = m; monthSel.appendChild(opt);
+                });
+                renderMonthGrid();
+                renderCategories(); // From config
+                renderCategorySettingsList(); // For config editor
+                
+                // Populate Inputs
+                document.getElementById('configYear').value = config.currentYear;
+                document.getElementById('yearDisplay').innerText = config.currentYear;
+                document.getElementById('priceBase').value = config.priceBase;
+                document.getElementById('priceTrimestral').value = config.priceTrimestral;
+                document.getElementById('priceAnual').value = config.priceAnual;
+                document.getElementById('ventaWebTrimestral').checked = config.ventaWeb?.Trimestral === true;
+                document.getElementById('ventaWebAnual').checked = config.ventaWeb?.Anual === true;
+                document.getElementById('transAlias').value = config.transferencia?.alias || "";
+                document.getElementById('transCbu').value = config.transferencia?.cbu || "";
+                document.getElementById('transTitular').value = config.transferencia?.titular || "";
+
+                // Canvas Events
+                const canvas = document.getElementById('ticketCanvas');
+                canvas.addEventListener('mousedown', (e) => {
+                    if(e.target === canvas || e.target.id === 'ticketBgImage') deselectAllFields();
+                });
+                window.addEventListener('resize', fitCanvasToScreen);
+                setupDesignerInputs();
+
+                // Hide loader
+                document.getElementById('loader').style.display = 'none';
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loader').innerHTML = `<div class="text-white text-lg p-6 text-center">${esc(err.message)}</div>`;
+            }
+        }
+
+        // --- GLOBAL VARIABLES (State) ---
+        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        const fullMonths = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        
+        let events = [];
+        let tickets = [];
+        let config = {
+            currentYear: new Date().getFullYear(),
+            priceBase: 10000, priceTrimestral: 25000, priceAnual: 60000,
+            categories: [{name: "General", payPercent: 100}, {name: "Beca 80", payPercent: 20}]
+        };
+
+        const defaultTemplates = {
+            'Suelta': { width: 600, height: 250, bg: null, fields: [
+                { id: 'f_event', text: '{EVENTO}', x: 20, y: 70, size: 28, font: 'Oswald', color: '#000000', bold: true },
+                { id: 'f_name', text: '{NOMBRE}', x: 20, y: 110, size: 16, font: 'Inter', color: '#333333' },
+                { id: 'f_date', text: '00/00', x: 20, y: 140, size: 14, font: 'Inter', color: '#666666' },
+                { id: 'f_time', text: '00:00 hs', x: 80, y: 140, size: 14, font: 'Inter', color: '#666666' },
+                { id: 'f_qr', type: 'qr', x: 450, y: 30, size: 120 }
+            ]},
+            'Trimestral': { width: 600, height: 300, bg: null, fields: [
+                { id: 'f_event', text: 'PACK TRIMESTRAL', x: 20, y: 50, size: 30, font: 'Oswald', color: '#000000', bold: true },
+                { id: 'f_name', text: '{NOMBRE}', x: 20, y: 100, size: 18, font: 'Inter', color: '#333333' },
+                { id: 'f_qr', type: 'qr', x: 450, y: 50, size: 120 }
+            ]},
+            'Anual': { width: 400, height: 600, bg: null, fields: [
+                { id: 'f_event', text: 'ABONO ANUAL', x: 40, y: 40, size: 32, font: 'Oswald', color: '#000000', bold: true },
+                { id: 'f_name', text: '{NOMBRE}', x: 40, y: 500, size: 20, font: 'Inter', color: '#333333' },
+                { id: 'f_qr', type: 'qr', x: 100, y: 150, size: 200 }
+            ]}
+        };
+        let templates = JSON.parse(JSON.stringify(defaultTemplates));
+
+        // --- DATA LOADERS ---
+        async function loadAllData() {
+            const d = await api("GET", "/api/admin/datos");
+            if (d.config) config = d.config;
+            events = d.eventos;
+            tickets = d.ventas;
+            ocupacion = d.ocupacion || {};
+            Object.assign(templates, d.plantillas || {});
+            renderEvents();
+            renderSales();
+            updateReports();
+            renderComprasWeb();
+        }
+
+        // --- GLOBAL UI HELPERS ---
+        let selectedMonthIndices = [];
+        let currentMode = 'Suelta';
+        let activeFieldId = null;
+        let fieldElements = {};
+        let printTicketData = null;
+
+        // Expose functions to window
+        window.switchTab = function(tabId, btn) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('view-' + tabId).classList.add('active');
+            if(btn) btn.classList.add('active');
+            if (tabId === 'designer') {
+                if (!printTicketData) switchTemplate(currentMode);
+                setTimeout(fitCanvasToScreen, 100);
+            }
+        }
+
+        window.showToast = function(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        // --- MANAGER LOGIC (DB Connected) ---
+        window.saveConfig = async function() {
+            config.currentYear = parseInt(document.getElementById('configYear').value);
+            config.priceBase = parseInt(document.getElementById('priceBase').value);
+            config.priceTrimestral = parseInt(document.getElementById('priceTrimestral').value);
+            config.priceAnual = parseInt(document.getElementById('priceAnual').value);
+            // Categories are already in config.categories from UI manipulation
+            
+            config.ventaWeb = { Trimestral: document.getElementById('ventaWebTrimestral').checked, Anual: document.getElementById('ventaWebAnual').checked };
+            config.transferencia = { alias: document.getElementById('transAlias').value, cbu: document.getElementById('transCbu').value, titular: document.getElementById('transTitular').value };
+            try {
+                config = (await api("PUT", "/api/admin/config", config)).config;
+            } catch (e) { return alert(e.message); }
+            
+            document.getElementById('yearDisplay').innerText = config.currentYear;
+            renderCategories(); // Update sales dropdown
+            calculateTotal();
+            showToast("Configuración Guardada en Nube");
+        }
+
+        // --- DYNAMIC CATEGORIES LOGIC ---
+        window.renderCategorySettingsList = function() {
+            const container = document.getElementById('categoryListContainer');
+            container.innerHTML = "";
+            config.categories.forEach((c, idx) => {
+                const el = document.createElement('div');
+                el.className = "flex justify-between items-center bg-white p-2 border border-slate-200 rounded text-xs";
+                el.innerHTML = `
+                    <span><b>${esc(c.name)}</b> (${c.payPercent}%)</span>
+                    <label class="flex items-center gap-1 text-slate-600"><input type="checkbox" ${c.visibleWeb ? "checked" : ""} onchange="toggleCatWeb(${idx}, this.checked)"> Web</label>
+                    <button onclick="removeCategory(${idx})" class="text-red-500 hover:text-red-700"><i data-lucide="trash-2" width="14"></i></button>
+                `;
+                container.appendChild(el);
+            });
+            lucide.createIcons();
+        }
+
+        window.addNewCategory = function() {
+            const name = document.getElementById('newCatName').value;
+            const pct = parseInt(document.getElementById('newCatPercent').value);
+            if (!name || isNaN(pct)) return alert("Completa nombre y porcentaje válido");
+            
+            config.categories.push({name, payPercent: pct});
+            document.getElementById('newCatName').value = "";
+            document.getElementById('newCatPercent').value = "";
+            renderCategorySettingsList();
+        }
+
+        window.removeCategory = function(index) {
+            if(confirm("¿Eliminar esta categoría?")) {
+                config.categories.splice(index, 1);
+                renderCategorySettingsList();
+            }
+        }
+
+        window.toggleCatWeb = function(index, valor) { config.categories[index].visibleWeb = valor; }
+
+        window.renderMonthGrid = function() {
+            const container = document.getElementById('monthGridContainer'); container.innerHTML = "";
+            months.forEach((m, idx) => {
+                const btn = document.createElement('div'); btn.className = 'month-btn'; btn.innerText = m;
+                btn.onclick = () => {
+                    if (selectedMonthIndices.includes(idx)) {
+                        selectedMonthIndices = selectedMonthIndices.filter(i => i !== idx); btn.classList.remove('selected');
+                    } else {
+                        selectedMonthIndices.push(idx); btn.classList.add('selected');
+                    }
+                    calculateTotal();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        window.saveNewEvent = async function() {
+            const name = document.getElementById('eventName').value;
+            if (!name) return showToast("Falta nombre del evento");
+            const previo = events.find(e => e.id === editandoEventoId) || {};
+            const textoFecha = document.getElementById('eventTextoFecha').value;
+            const ev = {
+                ...previo,
+                id: editandoEventoId || Date.now().toString(),
+                name,
+                type: document.getElementById('eventType').value,
+                monthIdx: document.getElementById('eventMonth').value,
+                day: document.getElementById('eventDay').value,
+                time: document.getElementById('eventTime').value,
+                cupo: document.getElementById('eventCupo').value === "" ? 80 : parseInt(document.getElementById('eventCupo').value),
+                descripcion: document.getElementById('eventDescripcion').value,
+                imagen: document.getElementById('eventImagen').value,
+                apoyoLogo: document.getElementById('eventApoyoLogo').value,
+                visibleWeb: document.getElementById('eventVisibleWeb').checked,
+            };
+            if (textoFecha.trim() !== "" || previo.textoFecha !== undefined) ev.textoFecha = textoFecha;
+            try {
+                const { evento } = await api("PUT", "/api/admin/eventos/" + ev.id, ev);
+                events = events.filter(e => e.id !== evento.id).concat(evento);
+            } catch (e) { return alert(e.message); }
+            limpiarFormEvento();
+            renderEvents();
+            showToast("Evento guardado");
+        }
+
+        window.editarEvento = function(id) {
+            const e = events.find(x => x.id === id);
+            if (!e) return;
+            editandoEventoId = id;
+            document.getElementById('eventName').value = e.name;
+            document.getElementById('eventType').value = e.type || 'Ciclo';
+            document.getElementById('eventMonth').value = e.monthIdx;
+            document.getElementById('eventDay').value = e.day;
+            document.getElementById('eventTime').value = e.time || "";
+            document.getElementById('eventCupo').value = e.cupo ?? 80;
+            document.getElementById('eventTextoFecha').value = e.textoFecha ?? "";
+            document.getElementById('eventDescripcion').value = e.descripcion || "";
+            document.getElementById('eventImagen').value = e.imagen || "";
+            document.getElementById('eventApoyoLogo').value = e.apoyoLogo || "";
+            document.getElementById('eventVisibleWeb').checked = e.visibleWeb === true;
+            const p = document.getElementById('eventImagenPreview');
+            p.src = e.imagen || ""; p.classList.toggle('hidden', !e.imagen);
+            document.getElementById('btnGuardarEvento').innerText = "Guardar cambios";
+            document.getElementById('view-events').scrollTop = 0;
+        }
+
+        function limpiarFormEvento() {
+            editandoEventoId = null;
+            for (const id of ['eventName', 'eventDay', 'eventTime', 'eventTextoFecha', 'eventDescripcion', 'eventImagen', 'eventApoyoLogo']) document.getElementById(id).value = "";
+            document.getElementById('eventCupo').value = 80;
+            document.getElementById('eventVisibleWeb').checked = false;
+            document.getElementById('eventImagenArchivo').value = "";
+            document.getElementById('eventImagenPreview').classList.add('hidden');
+            document.getElementById('btnGuardarEvento').innerText = "Guardar Evento";
+        }
+
+        window.subirImagenEvento = async function(input) {
+            const f = input.files[0];
+            if (!f) return;
+            showToast("Subiendo imagen…");
+            try {
+                const [r] = await window.UT.uploadFiles('imagen', { files: [f], headers: { 'x-clave': CLAVE } });
+                const url = r.ufsUrl || r.url;
+                document.getElementById('eventImagen').value = url;
+                const p = document.getElementById('eventImagenPreview');
+                p.src = url; p.classList.remove('hidden');
+                showToast("Imagen subida (falta Guardar)");
+            } catch (e) { alert("No se pudo subir la imagen: " + e.message); }
+        }
+
+        window.deleteEvent = async function(id) {
+            if(!confirm("¿Eliminar evento? (No borrará las ventas pasadas, pero no podrás seleccionarlo para nuevas ventas)")) return;
+            
+            try {
+                await api("DELETE", "/api/admin/eventos/" + id);
+                events = events.filter(e => e.id !== id.toString());
+                renderEvents();
+                showToast("Evento eliminado");
+            } catch(e) {
+                alert("Error al eliminar: " + e.message);
+            }
+        }
+
+        window.renderEvents = function() {
+            const list = document.getElementById('activeEventsList');
+            const sel = document.getElementById('saleEventSelect');
+            const exportSel = document.getElementById('exportFilterEvent');
+
+            list.innerHTML = ""; 
+            sel.innerHTML = '<option value="">Seleccionar...</option>';
+            exportSel.innerHTML = '<option value="ALL">Todo el Historial</option>';
+
+            events.forEach(e => {
+                const dateStr = `${e.day}/${months[e.monthIdx]} ${e.time}`;
+                const typeLabel = e.type === 'Privado' ? '<span class="text-[10px] bg-amber-100 text-amber-800 px-1 rounded ml-1">PRIVADO</span>' : '';
+                
+                // Add Delete Button to List Item
+                const web = e.visibleWeb ? '<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1 rounded ml-1">WEB</span>' : '';
+                const ocup = e.type === 'Privado' ? '' : `<span class="text-xs text-slate-500 ml-2">${ocupacion[e.id] || 0}/${e.cupo ?? 80}</span>`;
+                list.innerHTML += `
+                    <div class="list-item">
+                        <div><b>${esc(e.name)}</b> ${typeLabel}${web} <span class="text-xs text-slate-500">(${dateStr})</span>${ocup}</div>
+                        <div class="flex gap-1">
+                            <button onclick="editarEvento('${e.id}')" class="text-indigo-500 hover:text-indigo-700 p-1" title="Editar"><i data-lucide="pencil" width="16"></i></button>
+                            <button onclick="deleteEvent('${e.id}')" class="text-red-400 hover:text-red-600 p-1"><i data-lucide="trash-2" width="16"></i></button>
+                        </div>
+                    </div>`;
+                
+                sel.innerHTML += `<option value="${e.id}">${esc(e.name)} (${dateStr})</option>`;
+                exportSel.innerHTML += `<option value="${e.id}">${esc(e.name)} (${e.type || 'Ciclo'})</option>`;
+            });
+            lucide.createIcons();
+        }
+
+        window.renderCategories = function() {
+            const sel = document.getElementById('saleCategory'); sel.innerHTML = "";
+            config.categories.forEach(c => sel.innerHTML += `<option value="${c.payPercent}">${c.name}</option>`);
+        }
+
+        window.toggleSaleTypeUI = function() {
+            const t = document.getElementById('ticketDuration').value;
+            document.getElementById('eventSelectBox').style.display = (t === 'Suelta') ? 'block' : 'none';
+            document.getElementById('trimestreBox').style.display = (t === 'Trimestral') ? 'block' : 'none';
+            calculateTotal();
+        }
+
+        window.calculateTotal = function() {
+            const type = document.getElementById('ticketDuration').value;
+            let base = (type === 'Suelta') ? config.priceBase : (type === 'Trimestral' ? config.priceTrimestral : config.priceAnual);
+            const qty = parseInt(document.getElementById('ticketAmount').value) || 1;
+            const disc = parseFloat(document.getElementById('saleCategory').value) / 100;
+            document.getElementById('displayPrice').innerText = `$${Math.round(base * disc * qty).toLocaleString()}`;
+        }
+
+        window.processSale = async function() {
+            const type = document.getElementById('ticketDuration').value;
+            const name = document.getElementById('attendeeName').value;
+            if (!name) return showToast("Falta nombre del asistente");
+
+            let evName = "Abono Anual";
+            let evId = "general";
+            let dateText = config.currentYear;
+            let timeText = "";
+
+            if (type === 'Suelta') {
+                const evIdVal = document.getElementById('saleEventSelect').value;
+                if (!evIdVal) return showToast("Selecciona un evento");
+                const ev = events.find(e => String(e.id) === String(evIdVal));
+                evId = ev.id; 
+                evName = ev.name;
+                
+                const monthNum = (parseInt(ev.monthIdx) + 1).toString().padStart(2, '0');
+                const dayNum = (ev.day).toString().padStart(2, '0');
+                dateText = `${dayNum}/${monthNum}`;
+                timeText = `${ev.time} hs`;
+
+            } else if (type === 'Trimestral') {
+                evName = "Pack Trimestral";
+                dateText = selectedMonthIndices.map(i => months[i]).join("-");
+                timeText = "20:00 hs";
+            }
+
+            const catIdx = document.getElementById('saleCategory').selectedIndex;
+            const catName = config.categories[catIdx].name;
+
+            const newTicket = {
+                id: Date.now().toString(),
+                eventId: evId, eventName: evName, 
+                dateText: dateText,
+                timeText: timeText,
+                attendee: name, cuit: document.getElementById('attendeeCuit').value,
+                duration: type, categoryName: catName,
+                price: parseInt(document.getElementById('displayPrice').innerText.replace('$', '').replace(/\./g, '').replace(/,/g, '')),
+                quantity: document.getElementById('ticketAmount').value
+            };
+
+            if (type === 'Suelta') {
+                const ev = events.find(e => String(e.id) === String(evId));
+                const libres = (ev?.cupo ?? 80) - (ocupacion[evId] || 0);
+                if (parseInt(newTicket.quantity) > libres && !confirm(`Esta venta supera el cupo (${libres} libres). ¿Vender igual?`)) return;
+            }
+            let guardada;
+            try { guardada = await api("POST", "/api/admin/ventas", newTicket); } catch (e) { return alert(e.message); }
+            tickets.push(guardada);
+            if (type === 'Suelta') ocupacion[evId] = (ocupacion[evId] || 0) + parseInt(guardada.quantity || 1);
+            
+            document.getElementById('attendeeName').value = "";
+            document.getElementById('attendeeCuit').value = "";
+            renderSales();
+            updateReports();
+            showToast("Venta Registrada en DB");
+        }
+
+        window.deleteTicket = async function(id) {
+            if(!confirm("¿Eliminar esta venta definitivamente?")) return;
+            try {
+                await api("DELETE", "/api/admin/ventas/" + id);
+                tickets = tickets.filter(t => t.id !== id.toString());
+                renderComprasWeb();
+                renderSales(); // Updates recent list
+                filterTicketList(); // Updates full list if open
+                updateReports();
+                showToast("Entrada eliminada");
+            } catch(e) {
+                alert("Error: " + e.message);
+            }
+        }
+
+        window.renderSales = function() {
+            const l = document.getElementById('latestSalesList'); l.innerHTML = "";
+            // Sort by Date DESC
+            const sorted = tickets.filter(esAprobada).sort((a,b) => fechaVenta(b) - fechaVenta(a));
+            
+            // Show only top 10 recent
+            sorted.slice(0, 10).forEach(t => {
+                l.innerHTML += createTicketHTML(t);
+            });
+            lucide.createIcons();
+        }
+
+        window.loadAllTicketsForManagement = function() {
+            const container = document.getElementById('managementListContainer');
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                filterTicketList();
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        window.filterTicketList = function() {
+            const q = document.getElementById('searchTicketInput').value.toLowerCase();
+            const list = document.getElementById('fullTicketList');
+            list.innerHTML = "";
+            
+            const sorted = tickets.filter(esAprobada).sort((a,b) => fechaVenta(b) - fechaVenta(a));
+            
+            sorted.forEach(t => {
+                if (((t.attendee || '').toLowerCase().includes(q) || (t.eventName || '').toLowerCase().includes(q))) {
+                    list.innerHTML += createTicketHTML(t);
+                }
+            });
+            lucide.createIcons();
+        }
+
+        function createTicketHTML(t) {
+            return `
+                <div class="list-item">
+                    <div>
+                        <div class="font-bold text-sm text-slate-800">${esc(t.attendee)}${t.origen === 'web' ? ' <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1 rounded">WEB</span>' : ''}</div>
+                        <div class="text-xs text-slate-500">${esc(t.duration)} - ${esc(t.eventName)} (${esc(t.quantity)})</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-mono font-bold text-slate-700">$${t.price}</span>
+                        <button onclick="loadTicketForPrinting('${t.id}')" class="p-2 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100" title="Imprimir">
+                            <i data-lucide="printer" width="16"></i>
+                        </button>
+                        <button onclick="deleteTicket('${t.id}')" class="p-2 bg-red-50 text-red-500 rounded hover:bg-red-100" title="Eliminar">
+                            <i data-lucide="trash-2" width="16"></i>
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        window.renderComprasWeb = function() {
+            const web = tickets.filter(t => t.origen === 'web').sort((a, b) =>
+                ((a.estado === 'pendiente' ? 0 : 1) - (b.estado === 'pendiente' ? 0 : 1)) || (fechaVenta(b) - fechaVenta(a)));
+            const pendientes = web.filter(t => t.estado === 'pendiente').length;
+            document.getElementById('badgeCompras').textContent = pendientes || '';
+            document.getElementById('listaComprasWeb').innerHTML = web.length ? web.map(htmlCompraWeb).join('') : '<p class="text-sm text-slate-500">Todavía no hay compras web.</p>';
+            lucide.createIcons();
+        }
+
+        function htmlCompraWeb(t) {
+            const colores = { pendiente: 'bg-amber-100 text-amber-800', aprobada: 'bg-emerald-100 text-emerald-800', rechazada: 'bg-red-100 text-red-700' };
+            const mailsMal = Object.entries(t.mails || {}).filter(([, v]) => v !== 'ok').map(([k]) => k);
+            const comp = !t.comprobanteUrl ? '<span class="text-xs text-slate-500">Sin comprobante ($0)</span>'
+                : /\.pdf$/i.test(t.comprobanteKey || '') ? `<a href="${esc(t.comprobanteUrl)}" target="_blank" rel="noopener" class="text-xs text-indigo-600 underline">Ver comprobante (PDF)</a>`
+                : `<a href="${esc(t.comprobanteUrl)}" target="_blank" rel="noopener"><img src="${esc(t.comprobanteUrl)}" class="max-h-28 rounded border" alt="Comprobante"></a>`;
+            const acciones = t.estado === 'pendiente'
+                ? `<button onclick="aprobarCompra('${esc(t.id)}')" class="btn btn-primary text-xs py-1 px-3">Aprobar</button>
+                   <button onclick="rechazarCompra('${esc(t.id)}')" class="btn btn-warning text-xs py-1 px-3">Rechazar</button>`
+                : `<button onclick="reenviarCompra('${esc(t.id)}')" class="text-xs text-indigo-600 underline">Reenviar mail</button>`;
+            return `
+                <div class="border border-slate-200 rounded p-3 bg-white">
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <div class="font-bold text-sm">${esc(t.attendee)} <span class="text-[10px] px-1 rounded ${colores[t.estado] || ''}">${esc(t.estado)}</span></div>
+                            <div class="text-xs text-slate-600">${esc(t.duration)} · ${esc(t.eventName)} ${esc(t.dateText)} · ${esc(t.categoryName)} × ${esc(t.quantity)} · <b>$${Number(t.price).toLocaleString()}</b></div>
+                            <div class="text-xs text-slate-500">${esc(t.email)} · ${esc(t.telefono)}${t.cuit ? ' · ' + esc(t.cuit) : ''} · ${t.creadaEn ? new Date(t.creadaEn).toLocaleString('es-AR') : ''}</div>
+                            ${t.motivoRechazo ? `<div class="text-xs text-red-600">Motivo: ${esc(t.motivoRechazo)}</div>` : ''}
+                            ${mailsMal.length ? `<div class="text-xs text-red-600">Mail no enviado: ${esc(mailsMal.join(', '))}</div>` : ''}
+                        </div>
+                        <div class="flex flex-col gap-1 items-end">${acciones}</div>
+                    </div>
+                    <div class="mt-2">${comp}</div>
+                </div>`;
+        }
+
+        function reemplazarVenta(v) {
+            tickets = tickets.filter(t => t.id !== v.id).concat(v);
+            renderComprasWeb(); renderSales(); updateReports();
+        }
+
+        window.aprobarCompra = async function(id) {
+            if (!confirm("¿Confirmás que el pago está acreditado? Se manda la entrada por mail.")) return;
+            try {
+                const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/aprobar`);
+                reemplazarVenta(r.venta);
+                showToast(r.mail ? "Aprobada. Entrada enviada por mail." : "Aprobada, pero el mail falló: usá Reenviar.");
+            } catch (e) { alert(e.message); await loadAllData(); }
+        }
+
+        window.rechazarCompra = async function(id) {
+            const motivo = prompt("Motivo del rechazo (opcional, se le manda al comprador):", "");
+            if (motivo === null) return;
+            try {
+                const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/rechazar`, { motivo });
+                reemplazarVenta(r.venta);
+                const t = tickets.find(x => x.id === id);
+                if (t && t.duration === 'Suelta') ocupacion[t.eventId] = Math.max(0, (ocupacion[t.eventId] || 0) - parseInt(t.quantity || 1));
+                showToast(r.mail ? "Rechazada. Se avisó por mail." : "Rechazada, pero el mail falló: usá Reenviar.");
+            } catch (e) { alert(e.message); await loadAllData(); }
+        }
+
+        window.reenviarCompra = async function(id) {
+            try {
+                const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/reenviar`);
+                reemplazarVenta(r.venta);
+                showToast(r.mail ? "Mail reenviado." : "El mail volvió a fallar.");
+            } catch (e) { alert(e.message); }
+        }
+
+        window.updateReports = function() {
+            const validas = tickets.filter(esAprobada);
+            const total = validas.reduce((sum, t) => sum + (Number(t.price) || 0), 0);
+            document.getElementById('financeSummary').innerHTML =
+                `<h2 class="text-3xl font-black text-indigo-800">$${total.toLocaleString()}</h2>
+                 <p class="text-xs text-indigo-400 font-bold uppercase">Total Recaudado</p>
+                 <p class="text-sm text-slate-600 mt-2">${validas.length} tickets vendidos</p>`;
+        }
+
+        window.exportAllSales = function() {
+            const filterId = document.getElementById('exportFilterEvent').value;
+            let dataToExport = tickets.filter(esAprobada);
+
+            // 1. FILTRO DE FECHAS (Lógica del paso anterior)
+            if (filterId !== 'ALL') {
+                const evObj = events.find(e => e.id == filterId);
+                const isPrivate = evObj && evObj.type === 'Privado';
+                const eventMonthName = months[evObj.monthIdx]; // Ej: "Ene"
+
+                dataToExport = tickets.filter(t => {
+                    // Si es venta directa para este evento, siempre incluir
+                    if (String(t.eventId) === String(filterId)) return true;
+                    
+                    // Si es evento privado, no aceptar abonos
+                    if (isPrivate) return false;
+
+                    // Lógica de Abonos
+                    if (t.duration === 'Anual') return true; // Anual entra siempre
+                    if (t.duration === 'Trimestral') {
+                        // Verificar si el texto del ticket (ej: "Ene-Feb-Mar") incluye el mes del evento
+                        return t.dateText && t.dateText.includes(eventMonthName);
+                    }
+                    return false;
+                });
+            }
+
+            // 2. PREPARAR DATOS PRINCIPALES (Tabla Izquierda)
+            const rows = dataToExport.map(t => ({
+                Fecha: new Date(parseInt(t.id)).toLocaleDateString(),
+                Nombre: t.attendee,
+                CUIT: t.cuit || '',
+                Evento: t.eventName,
+                Tipo: t.duration,
+                Categoria: t.categoryName,
+                Precio: t.price // Aquí mantenemos el precio real pagado para registro
+            }));
+
+            // 3. PREPARAR RESUMEN (Tabla Derecha - Cheat Sheet)
+            const summaryMap = {};
+            
+            dataToExport.forEach(t => {
+                const key = `${t.duration}, ${t.categoryName}`;
+                
+                if (!summaryMap[key]) {
+                    summaryMap[key] = {
+                        category: key,
+                        quantity: 0,
+                        unitPrice: 0,
+                        total: 0
+                    };
+
+                    // --- NUEVO CAMBIO AQUÍ ---
+                    // Calculamos el precio base unitario
+                    let baseUnitPrice = t.price / parseInt(t.quantity || 1);
+
+                    // Si es Trimestral o Anual, dividimos el precio unitario VISUAL también
+                    if (t.duration === 'Trimestral') baseUnitPrice = baseUnitPrice / 3;
+                    if (t.duration === 'Anual') baseUnitPrice = baseUnitPrice / 7;
+
+                    summaryMap[key].unitPrice = baseUnitPrice;
+                }
+                
+                const qty = parseInt(t.quantity || 1);
+                summaryMap[key].quantity += qty;
+                
+                // Calculamos el total acumulado (ya estaba dividido, lo mantenemos igual)
+                let effectiveVal = t.price;
+                if (t.duration === 'Trimestral') effectiveVal = t.price / 3;
+                if (t.duration === 'Anual') effectiveVal = t.price / 7;
+                
+                summaryMap[key].total += effectiveVal;
+            });
+
+            const summaryRows = Object.values(summaryMap).map(item => ({
+                Categoria: item.category,
+                Cantidad: item.quantity,
+                Precio: Math.round(item.unitPrice), // Ahora mostrará 8333 en vez de 25000
+                Total: Math.round(item.total)
+            }));
+            
+            // Total Final Sumado
+            const totalSum = summaryRows.reduce((acc, curr) => acc + curr.Total, 0);
+            summaryRows.push({ Categoria: 'TOTAL FINAL', Cantidad: '', Precio: '', Total: totalSum });
+
+            // 4. GENERAR EXCEL
+            const ws = XLSX.utils.json_to_sheet(rows);
+            // Agregamos el resumen a partir de la columna J (aprox)
+            XLSX.utils.sheet_add_json(ws, summaryRows, { origin: "J1" });
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Ventas");
+            
+            // Nombre del archivo dinámico
+            let fileName = "Reporte_Conciertos.xlsx";
+            if(filterId !== 'ALL') {
+                const evObj = events.find(e => e.id == filterId);
+                if(evObj) fileName = `Reporte_${evObj.name.replace(/\s+/g, '_')}.xlsx`;
+            }
+
+            XLSX.writeFile(wb, fileName);
+        }
+		
+
+        // --- BRIDGE & PRINTING ---
+        window.loadTicketForPrinting = function(ticketId) {
+            const ticket = tickets.find(t => String(t.id) === String(ticketId));
+            if (!ticket) return;
+
+            printTicketData = ticket;
+            document.getElementById('printContextBanner').classList.remove('hidden');
+            document.getElementById('printContextName').innerText = ticket.attendee;
+
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('view-designer').classList.add('active');
+            document.querySelectorAll('#app-nav button')[3].classList.add('active');
+
+            switchTemplate(ticket.duration);
+            setTimeout(() => {
+                injectDataIntoCanvas(ticket);
+                fitCanvasToScreen();
+            }, 100);
+        }
+
+        window.clearPrintContext = function() {
+            printTicketData = null;
+            document.getElementById('printContextBanner').classList.add('hidden');
+            switchTemplate(currentMode);
+        }
+
+        // --- UPDATED QR CONTENT LOGIC ---
+        window.injectDataIntoCanvas = function(ticket) {
+			Object.values(fieldElements).forEach(el => {
+				let conf = JSON.parse(el.dataset.config);
+				
+				// 1. Manejo del Código QR
+				// El QR no es un texto, es un elemento gráfico. Lo detectamos por su ID o tipo.
+				if (conf.type === 'qr' || el.id.includes('f_qr')) {
+					const qrText = `Nombre: ${ticket.attendee}\nCategoria: ${ticket.categoryName}\nEvento: ${ticket.eventName}\nCant: ${ticket.quantity}`;
+					renderQR(el, { ...conf, text: qrText });
+					return; // Terminamos aquí para este elemento
+				}
+
+				// 2. Manejo de Textos y Etiquetas ({EVENTO}, {HORA}, etc.)
+				// Tomamos el texto original del diseño tal como lo escribiste
+				let originalText = conf.text || "";
+				console.log("originalText", originalText)
+				// Reemplazamos las variables sin importar a qué estén vinculadas en el select
+				let printedText = originalText
+					.replace(/{EVENTO}/gi, ticket.eventName || "")
+					.replace(/{HORA}/gi, ticket.timeText || "")
+					.replace(/{FECHA}/gi, ticket.dateText || "")
+					.replace(/{NOMBRE}/gi, ticket.attendee || "")
+					.replace(/{CUIT}/gi, ticket.cuit || "")
+					.replace(/{CATEGORIA}/gi, ticket.categoryName || "");
+
+				// 3. Respaldo (Fallback)
+				// Si no escribiste ninguna variable {} pero usaste el menú "Vincular Dato", 
+				// forzamos el reemplazo total como lo tenías antes.
+				if (printedText === originalText && !originalText.includes('{')) {
+					if (el.id.includes('f_name')) printedText = ticket.attendee;
+					else if (el.id.includes('f_event')) printedText = ticket.eventName;
+					else if (el.id.includes('f_date')) printedText = ticket.dateText;
+					else if (el.id.includes('f_time')) printedText = ticket.timeText;
+					else if (el.id.includes('f_cuit')) printedText = ticket.cuit;
+					else if (el.id.includes('f_category')) printedText = ticket.categoryName;
+				}
+
+				// Actualizamos visualmente el canvas de impresión
+				el.innerText = printedText;
+			});
+		}
+
+        // --- DESIGNER LOGIC (DB Connected) ---
+        window.switchTemplate = function(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.d-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + mode).classList.add('active');
+
+            const t = templates[mode];
+            document.getElementById('canvasWidth').value = t.width;
+            document.getElementById('canvasHeight').value = t.height;
+            const canvas = document.getElementById('ticketCanvas');
+            canvas.style.width = t.width + 'px';
+            canvas.style.height = t.height + 'px';
+            document.getElementById('ticketBgImage').src = t.bg || '';
+
+            document.querySelectorAll('.ticket-field').forEach(e => e.remove());
+            fieldElements = {};
+            t.fields.forEach(f => createFieldOnCanvas(f));
+            
+            if(printTicketData && printTicketData.duration === mode) {
+                 setTimeout(() => injectDataIntoCanvas(printTicketData), 50);
+            }
+            setTimeout(fitCanvasToScreen, 50);
+        }
+
+        window.createFieldOnCanvas = function(f) {
+            const el = document.createElement('div');
+            el.id = f.id;
+            el.className = 'ticket-field';
+            el.style.left = f.x + 'px';
+            el.style.top = f.y + 'px';
+            el.dataset.config = JSON.stringify(f);
+
+            if (f.type === 'qr') {
+                el.innerHTML = `<div id="qr_inner_${f.id}" class="qr-placeholder"></div>`;
+                setTimeout(() => renderQR(el, f), 0);
+            } else {
+                el.innerText = f.text;
+                applyStyles(el, f);
+            }
+
+            el.onmousedown = dragMouseDown;
+            el.onclick = (e) => { e.stopPropagation(); selectField(f.id); };
+            document.getElementById('ticketCanvas').appendChild(el);
+            fieldElements[f.id] = el;
+        }
+
+        window.renderQR = function(el, conf) {
+			let inner = document.getElementById(`qr_inner_${el.id}`) || el.querySelector('.qr-placeholder');
+			if (!inner) return; 
+			
+			inner.innerHTML = "";
+			let content = conf.text || "VALID TICKET"; 
+			
+			// STRIP ACCENTS AND SPECIAL CHARACTERS
+			// This turns "Categoría" into "Categoria", saving bytes so it fits in the box.
+			content = content.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+			new QRCode(inner, {
+				text: content,
+				width: parseInt(conf.size),
+				height: parseInt(conf.size),
+				colorDark: "#000000",
+				colorLight: "#ffffff",
+				correctLevel: QRCode.CorrectLevel.L
+			});
+		}
+
+        window.applyStyles = function(el, conf) {
+            el.style.fontSize = (conf.size || 16) + 'px';
+            el.style.color = conf.color || '#000000';
+            el.style.fontFamily = conf.font || 'Inter';
+            el.style.fontWeight = conf.bold ? 'bold' : 'normal';
+            el.style.fontStyle = conf.italic ? 'italic' : 'normal';
+        }
+
+        window.selectField = function(id) {
+            deselectAllFields();
+            activeFieldId = id;
+            const el = fieldElements[id];
+            el.classList.add('selected');
+
+            const conf = JSON.parse(el.dataset.config);
+            const editor = document.getElementById('styleEditor');
+            editor.classList.remove('opacity-50', 'pointer-events-none');
+
+            document.getElementById('fieldLabelInput').value = conf.text || '';
+            document.getElementById('fieldSize').value = conf.size || 16;
+            document.getElementById('fieldColor').value = conf.color || '#000000';
+            document.getElementById('fieldFont').value = conf.font || 'Inter';
+
+            const mapSelect = document.getElementById('fieldIdMapper');
+            if(id.includes('f_name')) mapSelect.value = 'f_name';
+            else if(id.includes('f_event')) mapSelect.value = 'f_event';
+            else if(id.includes('f_date')) mapSelect.value = 'f_date';
+            else if(id.includes('f_time')) mapSelect.value = 'f_time';
+            else if(id.includes('f_cuit')) mapSelect.value = 'f_cuit';
+            else if(id.includes('f_category')) mapSelect.value = 'f_category';
+            else if(id.includes('f_qr')) mapSelect.value = 'f_qr';
+            else mapSelect.value = "";
+        }
+
+        window.deselectAllFields = function() {
+            document.querySelectorAll('.ticket-field').forEach(el => el.classList.remove('selected'));
+            document.getElementById('styleEditor').classList.add('opacity-50', 'pointer-events-none');
+            activeFieldId = null;
+        }
+
+        window.dragMouseDown = function(e) {
+            e.preventDefault();
+            activeFieldId = this.id;
+            selectField(this.id);
+            let pos3 = e.clientX, pos4 = e.clientY;
+            const cv = document.getElementById('ticketCanvas');
+            const style = window.getComputedStyle(cv);
+            const matrix = new WebKitCSSMatrix(style.transform);
+            const scale = matrix.a || 1;
+
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+
+            function elementDrag(e) {
+                e.preventDefault();
+                const el = document.getElementById(activeFieldId);
+                let pos1 = (pos3 - e.clientX) / scale;
+                let pos2 = (pos4 - e.clientY) / scale;
+                pos3 = e.clientX; pos4 = e.clientY;
+                let newTop = (el.offsetTop - pos2);
+                let newLeft = (el.offsetLeft - pos1);
+                el.style.top = newTop + "px";
+                el.style.left = newLeft + "px";
+                let conf = JSON.parse(el.dataset.config);
+                conf.x = newLeft; conf.y = newTop;
+                el.dataset.config = JSON.stringify(conf);
+            }
+            function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
+        }
+
+        window.addNewField = function() {
+            const id = `f_custom_${Date.now()}`;
+            const f = { id, text: 'Nuevo Texto', x: 50, y: 50, size: 20, font: 'Inter', color: '#000000' };
+            createFieldOnCanvas(f);
+            selectField(id);
+        }
+
+        window.addQRField = function() {
+            const id = `f_qr_${Date.now()}`;
+            const f = { id, type: 'qr', x: 100, y: 100, size: 100 };
+            createFieldOnCanvas(f);
+        }
+
+        window.deleteActiveField = function() {
+            if (!activeFieldId) return;
+            fieldElements[activeFieldId].remove();
+            delete fieldElements[activeFieldId];
+            deselectAllFields();
+        }
+
+        window.updateFieldIdMap = function() {
+			if(!activeFieldId) return;
+			const newBase = document.getElementById('fieldIdMapper').value;
+			
+			// Obtenemos el elemento y preparamos el nuevo ID
+			const el = fieldElements[activeFieldId];
+			const oldId = activeFieldId;
+			
+			// Si elige "Texto Estático" (newBase es vacío), le damos un ID genérico f_custom
+			const newId = newBase ? (newBase + '_' + Date.now()) : ('f_custom_' + Date.now());
+			
+			el.id = newId;
+			let conf = JSON.parse(el.dataset.config);
+			conf.id = newId;
+			el.dataset.config = JSON.stringify(conf);
+
+			// FIX CRÍTICO PARA EL QR: Actualizar el ID del div interno si existe
+			const innerQr = document.getElementById(`qr_inner_${oldId}`);
+			if (innerQr) {
+				innerQr.id = `qr_inner_${newId}`;
+			}
+
+			delete fieldElements[oldId];
+			fieldElements[newId] = el;
+			activeFieldId = newId;
+		}
+
+        window.saveAllTemplates = async function() {
+            const fieldsData = [];
+            Object.values(fieldElements).forEach(el => fieldsData.push(JSON.parse(el.dataset.config)));
+            templates[currentMode].width = parseInt(document.getElementById('canvasWidth').value);
+            templates[currentMode].height = parseInt(document.getElementById('canvasHeight').value);
+            templates[currentMode].bg = document.getElementById('ticketBgImage').src; 
+            templates[currentMode].fields = fieldsData;
+            
+            try { await api("PUT", "/api/admin/plantillas/" + currentMode, templates[currentMode]); } catch (e) { return alert(e.message); }
+
+            showToast("Diseño Guardado en Cloud");
+        }
+
+        window.downloadTicketImage = function() {
+            const element = document.getElementById("ticketCanvas");
+            const originalTransform = element.style.transform;
+            element.style.transform = "none";
+            
+            html2canvas(element, { useCORS: true, scale: 2 }).then(canvas => {
+                const link = document.createElement("a");
+                link.download = `Ticket-${printTicketData ? printTicketData.attendee : 'Design'}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                element.style.transform = originalTransform;
+            });
+        }
+
+        window.setupDesignerInputs = function() {
+            document.getElementById('fieldLabelInput').addEventListener('input', (e) => updateActiveConf('text', e.target.value));
+            document.getElementById('fieldSize').addEventListener('input', (e) => updateActiveConf('size', e.target.value));
+            document.getElementById('fieldColor').addEventListener('input', (e) => updateActiveConf('color', e.target.value));
+            document.getElementById('fieldFont').addEventListener('change', (e) => updateActiveConf('font', e.target.value));
+            document.getElementById('bgInput').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => document.getElementById('ticketBgImage').src = evt.target.result;
+                    reader.readAsDataURL(file);
+                }
+            });
+            ['canvasWidth', 'canvasHeight'].forEach(id => {
+                document.getElementById(id).addEventListener('input', () => {
+                    const w = document.getElementById('canvasWidth').value;
+                    const h = document.getElementById('canvasHeight').value;
+                    const c = document.getElementById('ticketCanvas');
+                    c.style.width = w + 'px'; c.style.height = h + 'px';
+                    fitCanvasToScreen();
+                });
+            });
+        }
+
+        window.updateActiveConf = function(key, val) {
+            if (!activeFieldId) return;
+            const el = fieldElements[activeFieldId];
+            let conf = JSON.parse(el.dataset.config);
+            conf[key] = val;
+            el.dataset.config = JSON.stringify(conf);
+            if (key === 'text') { if(conf.type !== 'qr') el.innerText = val; } 
+            else if (key === 'size') { if(conf.type === 'qr') renderQR(el, conf); else applyStyles(el, conf); } 
+            else if (conf.type !== 'qr') { applyStyles(el, conf); }
+        }
+
+        window.toggleBold = function() { if(activeFieldId) { const el = fieldElements[activeFieldId]; const c = JSON.parse(el.dataset.config); updateActiveConf('bold', !c.bold); } }
+        window.toggleItalic = function() { if(activeFieldId) { const el = fieldElements[activeFieldId]; const c = JSON.parse(el.dataset.config); updateActiveConf('italic', !c.italic); } }
+
+        window.fitCanvasToScreen = function() {
+            const ws = document.getElementById('designer-workspace');
+            const cv = document.getElementById('ticketCanvas');
+            if (ws.offsetWidth === 0) return;
+            const scaleX = (ws.offsetWidth - 40) / parseInt(cv.style.width);
+            const scaleY = (ws.offsetHeight - 40) / parseInt(cv.style.height);
+            const scale = Math.min(scaleX, scaleY, 1);
+            cv.style.transform = `scale(${scale})`;
+            document.getElementById('zoomLevelDisplay').innerText = Math.round(scale * 100) + '%';
+        }
+
+        // Start App
+        initApp();
+    </script>
+</body>
+</html>
