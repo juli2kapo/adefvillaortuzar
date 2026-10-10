@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
     <script src="js/ut-client.js" defer></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Concert Manager (panel privado)</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@0.469.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/xlsx-js-style/dist/xlsx.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -799,6 +800,7 @@
                 price: parseInt(document.getElementById('displayPrice').innerText.replace('$', '').replace(/\./g, '').replace(/,/g, '')),
                 quantity: document.getElementById('ticketAmount').value
             };
+            if (type === 'Trimestral') newTicket.meses = [...selectedMonthIndices].sort((a, b) => a - b);
 
             if (type === 'Suelta') {
                 const ev = events.find(e => String(e.id) === String(evId));
@@ -900,9 +902,10 @@
         function htmlCompraWeb(t) {
             const colores = { pendiente: 'bg-amber-100 text-amber-800', aprobada: 'bg-emerald-100 text-emerald-800', rechazada: 'bg-red-100 text-red-700' };
             const mailsMal = Object.entries(t.mails || {}).filter(([, v]) => v !== 'ok').map(([k]) => k);
+            const enlacePdf = `<a href="${esc(t.comprobanteUrl)}" target="_blank" rel="noopener" class="text-xs text-indigo-600 underline">Ver comprobante (PDF u otro archivo)</a>`;
             const comp = !t.comprobanteUrl ? '<span class="text-xs text-slate-500">Sin comprobante ($0)</span>'
-                : /\.pdf$/i.test(t.comprobanteKey || '') ? `<a href="${esc(t.comprobanteUrl)}" target="_blank" rel="noopener" class="text-xs text-indigo-600 underline">Ver comprobante (PDF)</a>`
-                : `<a href="${esc(t.comprobanteUrl)}" target="_blank" rel="noopener"><img src="${esc(t.comprobanteUrl)}" class="max-h-28 rounded border" alt="Comprobante"></a>`;
+                : (t.comprobanteTipo === 'application/pdf' || /\.pdf$/i.test(t.comprobanteKey || '')) ? enlacePdf
+                : `<a href="${esc(t.comprobanteUrl)}" target="_blank" rel="noopener"><img src="${esc(t.comprobanteUrl)}" class="max-h-28 rounded border" alt="Comprobante" onerror="var a=this.parentNode;a.textContent='Ver comprobante (PDF u otro archivo)';a.className='text-xs text-indigo-600 underline'"></a>`;
             const acciones = t.estado === 'pendiente'
                 ? `<button onclick="aprobarCompra('${esc(t.id)}')" class="btn btn-primary text-xs py-1 px-3">Aprobar</button>
                    <button onclick="rechazarCompra('${esc(t.id)}')" class="btn btn-warning text-xs py-1 px-3">Rechazar</button>`
