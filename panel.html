@@ -645,7 +645,7 @@
                 events = events.filter(e => e.id !== evento.id).concat(evento);
             } catch (e) { return alert(e.message); }
             limpiarFormEvento();
-            renderEvents();
+            try { await loadAllData(); } catch (e) { renderEvents(); }
             showToast("Evento guardado");
         }
 
@@ -740,7 +740,7 @@
 
         window.renderCategories = function() {
             const sel = document.getElementById('saleCategory'); sel.innerHTML = "";
-            config.categories.forEach(c => sel.innerHTML += `<option value="${c.payPercent}">${c.name}</option>`);
+            config.categories.forEach(c => sel.innerHTML += `<option value="${c.payPercent}">${esc(c.name)}</option>`);
         }
 
         window.toggleSaleTypeUI = function() {
@@ -943,8 +943,7 @@
             try {
                 const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/rechazar`, { motivo });
                 reemplazarVenta(r.venta);
-                const t = tickets.find(x => x.id === id);
-                if (t && t.duration === 'Suelta') ocupacion[t.eventId] = Math.max(0, (ocupacion[t.eventId] || 0) - parseInt(t.quantity || 1));
+                await loadAllData();
                 showToast(r.mail ? "Rechazada. Se avisó por mail." : "Rechazada, pero el mail falló: usá Reenviar.");
             } catch (e) { alert(e.message); await loadAllData(); }
         }
@@ -976,7 +975,7 @@
                 const isPrivate = evObj && evObj.type === 'Privado';
                 const eventMonthName = months[evObj.monthIdx]; // Ej: "Ene"
 
-                dataToExport = tickets.filter(t => {
+                dataToExport = dataToExport.filter(t => {
                     // Si es venta directa para este evento, siempre incluir
                     if (String(t.eventId) === String(filterId)) return true;
                     
@@ -995,7 +994,7 @@
 
             // 2. PREPARAR DATOS PRINCIPALES (Tabla Izquierda)
             const rows = dataToExport.map(t => ({
-                Fecha: new Date(parseInt(t.id)).toLocaleDateString(),
+                Fecha: new Date(fechaVenta(t)).toLocaleDateString(),
                 Nombre: t.attendee,
                 CUIT: t.cuit || '',
                 Evento: t.eventName,
