@@ -1210,7 +1210,9 @@
             el.style.transform = 'none';
             el.classList.add('capturando');
             try {
-                const canvas = await html2canvas(el, { useCORS: true, scale: 2 });
+                // Copiar solo la entrada (y lo que la contiene), no el panel entero: es lo que más tarda.
+                const fueraDeLaEntrada = (n) => !(n.contains(el) || el.contains(n) || n.closest('head') || /^(STYLE|LINK)$/.test(n.tagName));
+                const canvas = await html2canvas(el, { useCORS: true, scale: 2, logging: false, ignoreElements: fueraDeLaEntrada });
                 return await new Promise((ok, mal) => canvas.toBlob(b => b ? ok(b) : mal(new Error('PNG vacío')), 'image/png'));
             } finally {
                 el.classList.remove('capturando');
@@ -1231,16 +1233,14 @@
             };
             // html2canvas necesita la vista en el layout: si está oculta la mostramos fuera de pantalla.
             if (!vista.classList.contains('active')) vista.style.cssText += ';display:block;position:fixed;left:-20000px;top:0;width:3000px;height:3000px;';
+            const archivos = []; // [{ id, file }]: se dibujan de a una (comparten el lienzo) y se suben todas juntas
             try {
                 for (const f of filas) {
                     try {
                         if (!templates[f.duration] || !Array.isArray(templates[f.duration].fields)) throw new Error('sin plantilla ' + f.duration);
                         const blob = await capturarEntrada(f);
-                        const nombre = `entrada-${[slugArchivo(f.attendee), slugArchivo(f.categoryName)].filter(Boolean).join('-')}.png`;
-                        const [r] = await window.UT.uploadFiles('imagen', { files: [new File([blob], nombre, { type: 'image/png' })], headers: { 'x-clave': CLAVE } });
-                        const url = r && (r.ufsUrl || r.url);
-                        if (!url) throw new Error('subida sin URL');
-                        entradas.push({ id: f.id, url });
+                        const nombre = `entrada-${[slugArchivo(f.attendee), slugArchivo(f.categoryName), archivos.length + 1].filter(Boolean).join('-')}.png`;
+                        archivos.push({ id: f.id, file: new File([blob], nombre, { type: 'image/png' }) });
                     } catch (e) {
                         console.error('No se pudo generar la entrada con diseño', f.id, e);
                         fallo = true;
@@ -1257,6 +1257,19 @@
                 lienzo.style.transform = estado.transform;
                 deselectAllFields();
                 setTimeout(fitCanvasToScreen, 60);
+            }
+            if (archivos.length) {
+                try {
+                    const subidas = await window.UT.uploadFiles('imagen', { files: archivos.map(a => a.file), headers: { 'x-clave': CLAVE } });
+                    for (const a of archivos) {
+                        const r = (subidas || []).find(x => x && x.name === a.file.name);
+                        const url = r && (r.ufsUrl || r.url);
+                        if (url) entradas.push({ id: a.id, url }); else fallo = true;
+                    }
+                } catch (e) {
+                    console.error('No se pudieron subir las entradas con diseño', e);
+                    fallo = true;
+                }
             }
             return { entradas, fallo };
         }
