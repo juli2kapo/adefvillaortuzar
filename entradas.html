@@ -72,8 +72,8 @@
           <p class="resumen-texto" id="resTexto"></p>
           <p class="resumen-badge" id="resBadge" hidden></p>
 
-          <p class="resumen-linea resumen-precio">Precio <span id="cSubtotal">$0</span></p>
-          <p class="resumen-linea resumen-descuento" id="filaDescuento" hidden><span id="cDescuentoTexto">Descuento</span> <span id="cDescuento"></span></p>
+          <p class="resumen-linea resumen-precio"><span id="cPrecioTexto">Precio</span> <span id="cSubtotal">$0</span></p>
+          <p class="resumen-linea resumen-descuento" id="filaDescuento" hidden><span id="cDescuentoTexto">Descuentos</span> <span id="cDescuento"></span></p>
           <p class="resumen-total">Total <strong id="cTotal">$0</strong></p>
 
           <div class="transferencia" id="bloqueTransf">
@@ -102,10 +102,10 @@
                 <legend>Elegí 3 meses</legend>
                 <div id="cMeses" class="meses"></div>
               </fieldset>
-              <div class="fila">
-                <label class="campo">Categoría <select id="cCategoria"></select>
-                  <span class="opcional" id="hint2x1" hidden>Con la categoría 2x1 se piden de a 2 (2, 4, 6…).</span></label>
-                <label class="campo campo-chico">Cantidad <input id="cCantidad" type="number" min="1" max="10" value="1" inputmode="numeric" /></label>
+              <div class="campo" role="group" aria-labelledby="catTitulo">
+                <span id="catTitulo">Entradas</span>
+                <ul class="categorias" id="cCategorias"></ul>
+                <span class="opcional">Podés combinar categorías en la misma compra (por ejemplo, 1 General y 1 Jubilados), hasta 10 entradas.</span>
               </div>
             </fieldset>
 
@@ -139,6 +139,7 @@
           <div class="listo" id="compraListo" hidden>
             <p class="listo-titulo">¡Recibido!</p>
             <p id="compraListoTexto"></p>
+            <ul class="listo-detalle" id="compraListoDetalle"></ul>
             <p id="compraListoMail">Te llega un mail cuando verifiquemos el pago. Si no lo ves, revisá spam o escribinos por <a href="https://wa.me/91131351262" target="_blank" rel="noopener">WhatsApp</a>.</p>
             <a class="btn-rect" href="conciertos.html">Volver a Conciertos</a>
           </div>

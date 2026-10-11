@@ -890,33 +890,55 @@
                 </div>`;
         }
 
+        /* Compras web agrupadas por pedido: un pedido puede tener varias filas (una por categoría)
+           con el mismo `pedido`, código y comprobante. Las filas viejas sin `pedido` son un pedido de una fila. */
+        function pedidosWeb() {
+            const grupos = new Map();
+            tickets.filter(t => t.origen === 'web').forEach(t => {
+                const k = String(t.pedido ?? t.id);
+                if (!grupos.has(k)) grupos.set(k, []);
+                grupos.get(k).push(t);
+            });
+            return [...grupos.entries()].map(([id, filas]) => {
+                filas.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+                const estados = [...new Set(filas.map(f => f.estado || 'aprobada'))];
+                return { id, filas, v: filas[0], estado: estados.length === 1 ? estados[0] : 'mixto' };
+            });
+        }
+
         window.renderComprasWeb = function() {
-            const web = tickets.filter(t => t.origen === 'web').sort((a, b) =>
-                ((a.estado === 'pendiente' ? 0 : 1) - (b.estado === 'pendiente' ? 0 : 1)) || (fechaVenta(b) - fechaVenta(a)));
-            const pendientes = web.filter(t => t.estado === 'pendiente').length;
+            const web = pedidosWeb().sort((a, b) =>
+                ((a.estado === 'pendiente' ? 0 : 1) - (b.estado === 'pendiente' ? 0 : 1)) || (fechaVenta(b.v) - fechaVenta(a.v)));
+            const pendientes = web.filter(p => p.estado === 'pendiente').length;
             document.getElementById('badgeCompras').textContent = pendientes || '';
             document.getElementById('listaComprasWeb').innerHTML = web.length ? web.map(htmlCompraWeb).join('') : '<p class="text-sm text-slate-500">Todavía no hay compras web.</p>';
             lucide.createIcons();
         }
 
-        function htmlCompraWeb(t) {
-            const colores = { pendiente: 'bg-amber-100 text-amber-800', aprobada: 'bg-emerald-100 text-emerald-800', rechazada: 'bg-red-100 text-red-700' };
-            const mailsMal = Object.entries(t.mails || {}).filter(([, v]) => v !== 'ok').map(([k]) => k);
+        function htmlCompraWeb(p) {
+            const t = p.v;
+            const colores = { pendiente: 'bg-amber-100 text-amber-800', aprobada: 'bg-emerald-100 text-emerald-800', rechazada: 'bg-red-100 text-red-700', mixto: 'bg-slate-200 text-slate-700' };
+            const mailsMal = [...new Set(p.filas.flatMap(f => Object.entries(f.mails || {}).filter(([, v]) => v !== 'ok').map(([k]) => k)))];
+            const total = p.filas.reduce((s, f) => s + (Number(f.price) || 0), 0);
+            const personas = p.filas.reduce((s, f) => s + (Number(f.quantity) || 0), 0);
+            const lineas = p.filas.map(f => `<li>${esc(f.quantity)} × ${esc(f.categoryName)} — $${(Number(f.price) || 0).toLocaleString()}</li>`).join('');
             const enlacePdf = `<a href="${esc(t.comprobanteUrl)}" target="_blank" rel="noopener" class="text-xs text-indigo-600 underline">Ver comprobante (PDF u otro archivo)</a>`;
             const comp = !t.comprobanteUrl ? '<span class="text-xs text-slate-500">Sin comprobante ($0)</span>'
                 : (t.comprobanteTipo === 'application/pdf' || /\.pdf$/i.test(t.comprobanteKey || '')) ? enlacePdf
                 : `<a href="${esc(t.comprobanteUrl)}" target="_blank" rel="noopener"><img src="${esc(t.comprobanteUrl)}" class="max-h-28 rounded border" alt="Comprobante" onerror="var a=this.parentNode;a.textContent='Ver comprobante (PDF u otro archivo)';a.className='text-xs text-indigo-600 underline'"></a>`;
-            const acciones = t.estado === 'pendiente'
-                ? `<button onclick="aprobarCompra('${esc(t.id)}')" class="btn btn-primary text-xs py-1 px-3">Aprobar</button>
-                   <button onclick="rechazarCompra('${esc(t.id)}')" class="btn btn-warning text-xs py-1 px-3">Rechazar</button>`
-                : `<button onclick="reenviarCompra('${esc(t.id)}')" class="text-xs text-indigo-600 underline">Reenviar mail</button>`;
+            const acciones = p.estado === 'pendiente'
+                ? `<button onclick="aprobarCompra('${esc(p.id)}')" class="btn btn-primary text-xs py-1 px-3">Aprobar</button>
+                   <button onclick="rechazarCompra('${esc(p.id)}')" class="btn btn-warning text-xs py-1 px-3">Rechazar</button>`
+                : `<button onclick="reenviarCompra('${esc(p.id)}')" class="text-xs text-indigo-600 underline">Reenviar mail</button>`;
             return `
                 <div class="border border-slate-200 rounded p-3 bg-white">
                     <div class="flex justify-between items-start gap-2">
-                        <div>
-                            <div class="font-bold text-sm">${esc(t.attendee)} <span class="text-[10px] px-1 rounded ${colores[t.estado] || ''}">${esc(t.estado)}</span></div>
-                            <div class="text-xs text-slate-600">${esc(t.duration)} · ${esc(t.eventName)} ${esc(t.dateText)} · ${esc(t.categoryName)} × ${esc(t.quantity)} · <b>$${Number(t.price).toLocaleString()}</b></div>
-                            <div class="text-xs text-slate-500">${esc(t.email)} · ${esc(t.telefono)}${t.cuit ? ' · ' + esc(t.cuit) : ''} · ${t.creadaEn ? new Date(t.creadaEn).toLocaleString('es-AR') : ''}</div>
+                        <div class="min-w-0">
+                            <div class="font-bold text-sm">${esc(t.attendee)} <span class="text-[10px] px-1 rounded ${colores[p.estado] || ''}">${esc(p.estado)}</span></div>
+                            <div class="text-xs text-slate-600">${esc(t.duration)} · ${esc(t.eventName)} ${esc(t.dateText)}</div>
+                            <ul class="text-xs text-slate-700 my-1 pl-3 list-disc">${lineas}</ul>
+                            <div class="text-xs text-slate-700">Total del pedido: <b>$${total.toLocaleString()}</b> · ${esc(personas)} ${personas === 1 ? 'persona' : 'personas'}</div>
+                            <div class="text-xs text-slate-500">${esc(t.email)} · ${esc(t.telefono)}${t.cuit ? ' · ' + esc(t.cuit) : ''} · ${t.creadaEn ? esc(new Date(t.creadaEn).toLocaleString('es-AR')) : ''}</div>
                             ${t.motivoRechazo ? `<div class="text-xs text-red-600">Motivo: ${esc(t.motivoRechazo)}</div>` : ''}
                             ${mailsMal.length ? `<div class="text-xs text-red-600">Mail no enviado: ${esc(mailsMal.join(', '))}</div>` : ''}
                         </div>
@@ -926,8 +948,10 @@
                 </div>`;
         }
 
-        function reemplazarVenta(v) {
-            tickets = tickets.filter(t => t.id !== v.id).concat(v);
+        /* La API devuelve todas las filas del pedido (`ventas`); reemplazamos esas filas. */
+        function reemplazarVentas(vs) {
+            const ids = new Set(vs.map(v => String(v.id)));
+            tickets = tickets.filter(t => !ids.has(String(t.id))).concat(vs);
             renderComprasWeb(); renderSales(); updateReports();
         }
 
@@ -935,7 +959,7 @@
             if (!confirm("¿Confirmás que el pago está acreditado? Se manda la entrada por mail.")) return;
             try {
                 const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/aprobar`);
-                reemplazarVenta(r.venta);
+                reemplazarVentas(r.ventas);
                 showToast(r.mail ? "Aprobada. Entrada enviada por mail." : "Aprobada, pero el mail falló: usá Reenviar.");
             } catch (e) { alert(e.message); await loadAllData(); }
         }
@@ -945,7 +969,7 @@
             if (motivo === null) return;
             try {
                 const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/rechazar`, { motivo });
-                reemplazarVenta(r.venta);
+                reemplazarVentas(r.ventas);
                 await loadAllData();
                 showToast(r.mail ? "Rechazada. Se avisó por mail." : "Rechazada, pero el mail falló: usá Reenviar.");
             } catch (e) { alert(e.message); await loadAllData(); }
@@ -954,7 +978,7 @@
         window.reenviarCompra = async function(id) {
             try {
                 const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/reenviar`);
-                reemplazarVenta(r.venta);
+                reemplazarVentas(r.ventas);
                 showToast(r.mail ? "Mail reenviado." : "El mail volvió a fallar.");
             } catch (e) { alert(e.message); }
         }

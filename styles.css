@@ -1099,6 +1099,24 @@ a   { color: inherit; }
 .formulario .meses label { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid #d6d6d6; border-radius: 8px; cursor: pointer; }
 .formulario .meses label:has(input:checked) { border-color: var(--rose); background: #fbf3f3; }
 
+/* Categorías con contador − n + (una compra puede combinar varias) */
+.categorias { list-style: none; margin: 8px 0 8px; padding: 0; border: 1px solid #d6d6d6; border-radius: 8px; background: #fff; }
+.categoria { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); transition: background .2s var(--ease); }
+.categoria:first-child { border-top: 0; border-radius: 8px 8px 0 0; }
+.categoria:last-child { border-radius: 0 0 8px 8px; }
+.categoria.con-entradas { background: #fbf3f3; }
+.categoria-info { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.categoria-nombre { font-size: 1rem; font-weight: 500; color: var(--ink); overflow-wrap: anywhere; }
+.categoria-precio { font-size: .88rem; font-weight: 400; color: var(--ink-soft); }
+.contador { flex: none; display: flex; align-items: center; gap: 4px; }
+.contador-btn { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid #812424; border-radius: 50%; background: #fff; color: #812424; font: inherit; font-size: 1.2rem; line-height: 1; cursor: pointer; transition: background .2s, color .2s; }
+.contador-btn:hover:not(:disabled) { background: #812424; color: #fff; }
+.contador-btn:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
+.contador-btn:disabled { border-color: #d6d6d6; color: #bbb; cursor: default; }
+.contador-n { min-width: 28px; text-align: center; font-size: 1.05rem; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.listo-detalle { margin: 0 0 16px; padding: 0 0 0 18px; }
+.listo-detalle li { margin: 2px 0; }
+
 .pago-ayuda, .pago-gratis { margin: 0 0 14px; font-size: .95rem; color: var(--ink-soft); }
 .archivo { display: flex; align-items: center; gap: 14px; padding: 14px; margin: 0 0 18px; border: 1.5px dashed #c9bcbc; border-radius: 8px; background: #fcfafa; cursor: pointer; position: relative; }
 .archivo:hover { border-color: var(--rose); }

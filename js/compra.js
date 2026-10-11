@@ -42,33 +42,58 @@
     sel.innerHTML = items.map(function (o) { return '<option value="' + esc(o[0]) + '">' + esc(o[1]) + "</option>"; }).join("");
   }
 
-  function cantidadValida() {
-    return Math.min(10, Math.max(1, Math.floor(Number($("cCantidad").value)) || 1));
+  /* ---------- Categorías: un contador − n + por categoría (una compra puede combinar varias) ---------- */
+  var cantidades = {};
+
+  function cantidadesIniciales() {
+    var cs = datos.categorias, inicial = {};
+    var general = cs.filter(function (c) { return c.nombre === "General"; })[0] || cs[0];
+    cs.forEach(function (c) { inicial[c.nombre] = c === general ? (L.es2x1(c.nombre) ? 2 : 1) : 0; });
+    return inicial;
+  }
+
+  function paso(nombre) { return L.es2x1(nombre) ? 2 : 1; }
+
+  function pintarCategorias() {
+    $("cCategorias").innerHTML = datos.categorias.map(function (c, i) {
+      var n = esc(c.nombre);
+      return '<li class="categoria" data-i="' + i + '">' +
+        '<div class="categoria-info"><span class="categoria-nombre">' + esc(L.textoCategoria(c)) + '</span>' +
+        '<span class="categoria-precio" data-precio></span></div>' +
+        '<div class="contador">' +
+        '<button type="button" class="contador-btn" data-cat="' + i + '" data-delta="-1" aria-label="Quitar una entrada ' + n + '">−</button>' +
+        '<output class="contador-n" aria-live="polite" aria-label="Entradas ' + n + '">0</output>' +
+        '<button type="button" class="contador-btn" data-cat="' + i + '" data-delta="1" aria-label="Agregar una entrada ' + n + '">+</button>' +
+        "</div></li>";
+    }).join("");
+  }
+
+  function pedido() {
+    return L.calcularPedido(datos.precios, $("cTipo").value, datos.categorias, cantidades);
+  }
+
+  /* Actualiza números, precios unitarios y botones de cada categoría sin repintar (no pierde el foco). */
+  function refrescarCategorias(p) {
+    var tipo = $("cTipo").value, usadas = p.items.length;
+    [].slice.call($("cCategorias").children).forEach(function (li) {
+      var c = datos.categorias[Number(li.getAttribute("data-i"))], n = cantidades[c.nombre] || 0, s = paso(c.nombre);
+      var unit = L.precio(datos.precios, tipo, c.porcentaje, 1);
+      li.querySelector("[data-precio]").textContent = unit === 0 ? "Sin cargo" : L.plata(unit) + (s === 2 ? " por persona, de a 2" : " c/u");
+      li.querySelector(".contador-n").textContent = n;
+      li.classList.toggle("con-entradas", n > 0);
+      li.querySelector('[data-delta="-1"]').disabled = n === 0;
+      li.querySelector('[data-delta="1"]').disabled = p.cantidad + s > L.MAX_ENTRADAS || (n === 0 && usadas >= L.MAX_CATEGORIAS);
+    });
   }
 
   function leerFormulario() {
     var meses = [].slice.call($("cMeses").querySelectorAll("input:checked")).map(function (i) { return Number(i.value); });
     return {
       tipo: $("cTipo").value, eventoId: $("cEvento").value, meses: meses,
-      categoria: $("cCategoria").value, cantidad: cantidadValida(),
+      items: pedido().items,
       nombre: $("cNombre").value.trim(), email: $("cEmail").value.trim(),
       telefono: $("cTelefono").value.trim(),
     };
-  }
-
-  function categoriaElegida() {
-    var nombre = $("cCategoria").value;
-    return datos.categorias.filter(function (x) { return x.nombre === nombre; })[0] || null;
-  }
-
-  function total() {
-    var c = leerFormulario(), cat = categoriaElegida();
-    return cat ? L.precio(datos.precios, c.tipo, cat.porcentaje, c.cantidad) : 0;
-  }
-
-  function subtotal() {
-    var c = leerFormulario();
-    return L.precio(datos.precios, c.tipo, 100, c.cantidad);
   }
 
   function evento(id) {
@@ -112,21 +137,20 @@
     var tipo = $("cTipo").value;
     $("campoEvento").hidden = tipo !== "Suelta";
     $("campoMeses").hidden = tipo !== "Trimestral";
-    var t = total(), sub = subtotal(), cat = categoriaElegida();
-    $("cSubtotal").textContent = L.plata(sub);
-    var conDescuento = sub - t > 0;
-    if (conDescuento) {
-      $("cDescuentoTexto").textContent = cat.porcentaje === 0 ? cat.nombre + ": sin cargo" : "Descuento " + cat.nombre + " (" + (100 - cat.porcentaje) + "%)";
-      $("cDescuento").textContent = "−" + L.plata(sub - t);
-    }
+    var p = pedido(), t = p.total;
+    refrescarCategorias(p);
+    $("cPrecioTexto").textContent = p.cantidad > 1 ? "Precio (" + p.cantidad + " entradas)" : "Precio";
+    $("cSubtotal").textContent = L.plata(p.subtotal);
+    var conDescuento = p.descuento > 0;
+    if (conDescuento) $("cDescuento").textContent = "−" + L.plata(p.descuento);
     var fila = $("filaDescuento");
     if (conDescuento && fila.hidden) { fila.hidden = false; fila.style.animation = "none"; void fila.offsetWidth; fila.style.animation = ""; }
     fila.hidden = !conDescuento;
     $("cTotal").textContent = L.plata(t);
-    $("bloquePago").hidden = t === 0;
+    var gratis = t === 0 && p.cantidad > 0;
+    $("bloquePago").hidden = gratis;
     $("bloqueTransf").hidden = t === 0;
-    $("pagoGratis").hidden = t !== 0;
-    $("hint2x1").hidden = !L.es2x1($("cCategoria").value);
+    $("pagoGratis").hidden = !gratis;
     resumen();
   }
 
@@ -140,7 +164,8 @@
     $("cMeses").innerHTML = datos.mesesTrimestre.map(function (m) {
       return '<label><input type="checkbox" value="' + esc(m) + '" /> ' + esc(L.MESES_LARGOS[m]) + "</label>";
     }).join("");
-    opciones($("cCategoria"), datos.categorias.map(function (c) { return [c.nombre, L.textoCategoria(c)]; }));
+    pintarCategorias();
+    cantidades = cantidadesIniciales();
     var t = datos.transferencia;
     $("tAlias").textContent = t.alias;
     $("tCbu").textContent = t.cbu;
@@ -174,9 +199,8 @@
   function enviar(e) {
     e.preventDefault();
     error("");
-    $("cCantidad").value = cantidadValida();
     var c = leerFormulario();
-    var t = total();
+    var t = pedido().total;
     var archivo = $("cArchivo").files[0] || null;
     var problema = L.validarFormulario(c, t, archivo);
     if (problema) return error(problema);
@@ -207,7 +231,12 @@
   }
 
   function listo(r) {
-    $("compraListoTexto").textContent = r.evento + " (" + r.fecha + ") · " + r.cantidad + (r.cantidad === 1 ? " entrada" : " entradas") + " · " + L.plata(r.total) + ". Te escribimos a " + r.email + ".";
+    var items = r.items || [];
+    $("compraListoTexto").textContent = r.evento + " (" + r.fecha + ") · " + r.cantidad + (r.cantidad === 1 ? " entrada" : " entradas") + " · Total " + L.plata(r.total) + ". Te escribimos a " + r.email + ".";
+    $("compraListoDetalle").innerHTML = items.map(function (i) {
+      return "<li>" + esc(i.cantidad) + " × " + esc(i.categoria) + " — " + esc(L.plata(i.precio)) + "</li>";
+    }).join("");
+    $("compraListoDetalle").hidden = !items.length;
     $("compraListoMail").firstChild.nodeValue = r.total === 0
       ? "Te llega un mail cuando confirmemos tu reserva. Si no lo ves, revisá spam o escribinos por "
       : "Te llega un mail cuando verifiquemos el pago. Si no lo ves, revisá spam o escribinos por ";
@@ -215,6 +244,7 @@
     $("compraListo").hidden = false;
     $("compraListo").scrollIntoView({ block: "start" });
     $("compraForm").reset();
+    cantidades = cantidadesIniciales();
     actualizar();
     reiniciarTurnstile();
   }
@@ -222,14 +252,13 @@
   /* Tras un 409 (cupo agotado): refresca concierto y cupos sin perder lo que escribió. */
   function recargarDatos() {
     var antes = leerFormulario();
-    var mesesAntes = antes.meses;
+    var mesesAntes = antes.meses, cantAntes = cantidades;
     return fetch(API + "/api/publico").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
       if (!d) return;
       datos = d;
       prepararFormulario(new URLSearchParams(""));
       $("cTipo").value = antes.tipo;
-      $("cCategoria").value = antes.categoria;
-      $("cCantidad").value = antes.cantidad;
+      datos.categorias.forEach(function (c) { cantidades[c.nombre] = cantAntes[c.nombre] || 0; });
       if (antes.eventoId) $("cEvento").value = antes.eventoId;
       [].slice.call($("cMeses").querySelectorAll("input")).forEach(function (i) { i.checked = mesesAntes.indexOf(Number(i.value)) >= 0; });
       actualizar();
@@ -250,11 +279,18 @@
       setTimeout(function () { cp.textContent = "Copiar"; }, 1500);
     }
   });
-  ["cTipo", "cEvento", "cCategoria", "cCantidad", "cMeses"].forEach(function (id) {
+  ["cTipo", "cEvento", "cMeses"].forEach(function (id) {
     $(id).addEventListener("change", actualizar);
     $(id).addEventListener("input", actualizar);
   });
-  $("cCantidad").addEventListener("change", function () { $("cCantidad").value = cantidadValida(); actualizar(); });
+  $("cCategorias").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-cat]");
+    if (!b || b.disabled) return;
+    var c = datos.categorias[Number(b.getAttribute("data-cat"))];
+    var n = (cantidades[c.nombre] || 0) + Number(b.getAttribute("data-delta")) * paso(c.nombre);
+    cantidades[c.nombre] = Math.max(0, n);
+    actualizar();
+  });
   $("cArchivo").addEventListener("change", function () {
     var f = $("cArchivo").files[0];
     $("cArchivoNombre").textContent = f ? f.name : "JPG, PNG o PDF, hasta 8 MB";
