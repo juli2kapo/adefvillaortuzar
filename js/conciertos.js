@@ -23,7 +23,8 @@
         '<h3 class="tile-title">' + esc(ev.nombre) + "</h3>" +
         '<p class="tile-text">' + esc(L.textoTile(ev)) + "</p>" +
         (et && et !== "Agotado" ? '<p class="tile-badge">' + esc(et) + "</p>" : "") +
-        (ev.apoyoLogo ? '<div class="lepi-support"><span>Con el apoyo de</span><img src="' + esc(ev.apoyoLogo) + '" alt="" loading="lazy" /></div>' : "") +
+        (ev.apoyoLogo || ev.apoyoTexto ? '<div class="lepi-support"><span>' + esc(ev.apoyoTexto || "Con el apoyo de") + "</span>" +
+          (ev.apoyoLogo ? '<img src="' + esc(ev.apoyoLogo) + '" alt="" loading="lazy" />' : "") + "</div>" : "") +
         boton + "</article>";
     }).join("");
     if (primeraVez && location.hash) {

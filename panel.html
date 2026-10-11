@@ -220,10 +220,20 @@
                 <div class="input-group mt-2"><label class="input-label">Descripción en la web</label><input id="eventDescripcion" class="input-field" maxlength="300" placeholder="Ej: Ópera al atardecer"></div>
                 <div class="input-group">
                     <label class="input-label">Imagen de la tarjeta</label>
-                    <input type="file" id="eventImagenArchivo" accept="image/*" class="text-xs" onchange="subirImagenEvento(this)">
+                    <input type="file" id="eventImagenArchivo" accept="image/*" class="text-xs" onchange="subirImagenEvento(this, 'eventImagen', 'eventImagenPreview')">
                     <img id="eventImagenPreview" class="mt-2 max-h-24 rounded hidden">
                     <input type="hidden" id="eventImagen">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Patrocinio (opcional)</label>
+                    <input id="eventApoyoTexto" class="input-field" maxlength="80" placeholder="Con el apoyo de">
+                    <input type="file" id="eventApoyoArchivo" accept="image/*" class="text-xs mt-2" onchange="subirImagenEvento(this, 'eventApoyoLogo', 'eventApoyoPreview')">
+                    <div class="flex items-center gap-2 mt-2">
+                        <img id="eventApoyoPreview" class="max-h-12 rounded bg-white p-1 hidden">
+                        <button type="button" id="eventApoyoQuitar" onclick="quitarApoyo()" class="text-xs text-red-400 hidden">Quitar logo</button>
+                    </div>
                     <input type="hidden" id="eventApoyoLogo">
+                    <p class="text-[10px] text-slate-500 mt-1">Sin texto ni logo, no se muestra nada. Con logo y sin texto, dice "Con el apoyo de".</p>
                 </div>
                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="eventVisibleWeb"> Mostrar en la web (conciertos.html)</label>
                 <button onclick="saveNewEvent()" class="btn btn-secondary mt-4"><span id="btnGuardarEvento">Guardar Evento</span></button>
@@ -638,6 +648,7 @@
                 descripcion: document.getElementById('eventDescripcion').value,
                 imagen: document.getElementById('eventImagen').value,
                 apoyoLogo: document.getElementById('eventApoyoLogo').value,
+                apoyoTexto: document.getElementById('eventApoyoTexto').value,
                 visibleWeb: document.getElementById('eventVisibleWeb').checked,
             };
             if (textoFecha.trim() !== "" || previo.textoFecha !== undefined) ev.textoFecha = textoFecha;
@@ -664,6 +675,10 @@
             document.getElementById('eventDescripcion').value = e.descripcion || "";
             document.getElementById('eventImagen').value = e.imagen || "";
             document.getElementById('eventApoyoLogo').value = e.apoyoLogo || "";
+            document.getElementById('eventApoyoTexto').value = e.apoyoTexto || "";
+            const ap = document.getElementById('eventApoyoPreview');
+            ap.src = e.apoyoLogo || ""; ap.classList.toggle('hidden', !e.apoyoLogo);
+            document.getElementById('eventApoyoQuitar').classList.toggle('hidden', !e.apoyoLogo);
             document.getElementById('eventVisibleWeb').checked = e.visibleWeb === true;
             const p = document.getElementById('eventImagenPreview');
             p.src = e.imagen || ""; p.classList.toggle('hidden', !e.imagen);
@@ -673,24 +688,34 @@
 
         function limpiarFormEvento() {
             editandoEventoId = null;
-            for (const id of ['eventName', 'eventDay', 'eventTime', 'eventTextoFecha', 'eventDescripcion', 'eventImagen', 'eventApoyoLogo']) document.getElementById(id).value = "";
+            for (const id of ['eventName', 'eventDay', 'eventTime', 'eventTextoFecha', 'eventDescripcion', 'eventImagen', 'eventApoyoLogo', 'eventApoyoTexto', 'eventApoyoArchivo']) document.getElementById(id).value = "";
             document.getElementById('eventCupo').value = 80;
             document.getElementById('eventVisibleWeb').checked = false;
             document.getElementById('eventImagenArchivo').value = "";
             document.getElementById('eventImagenPreview').classList.add('hidden');
+            document.getElementById('eventApoyoPreview').classList.add('hidden');
+            document.getElementById('eventApoyoQuitar').classList.add('hidden');
             document.getElementById('btnGuardarEvento').innerText = "Guardar Evento";
         }
 
-        window.subirImagenEvento = async function(input) {
+        window.quitarApoyo = function() {
+            document.getElementById('eventApoyoLogo').value = "";
+            document.getElementById('eventApoyoArchivo').value = "";
+            document.getElementById('eventApoyoPreview').classList.add('hidden');
+            document.getElementById('eventApoyoQuitar').classList.add('hidden');
+        }
+
+        window.subirImagenEvento = async function(input, destino, preview) {
             const f = input.files[0];
             if (!f) return;
             showToast("Subiendo imagen…");
             try {
                 const [r] = await window.UT.uploadFiles('imagen', { files: [f], headers: { 'x-clave': CLAVE } });
                 const url = r.ufsUrl || r.url;
-                document.getElementById('eventImagen').value = url;
-                const p = document.getElementById('eventImagenPreview');
+                document.getElementById(destino).value = url;
+                const p = document.getElementById(preview);
                 p.src = url; p.classList.remove('hidden');
+                if (destino === 'eventApoyoLogo') document.getElementById('eventApoyoQuitar').classList.remove('hidden');
                 showToast("Imagen subida (falta Guardar)");
             } catch (e) { alert("No se pudo subir la imagen: " + e.message); }
         }
