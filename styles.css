@@ -1150,3 +1150,9 @@ a   { color: inherit; }
   .formulario .fila { flex-direction: column; gap: 0; }
   .formulario .campo-chico { flex: 1; }
 }
+
+/* Conciertos: mientras llegan los datos de la API no se ve el respaldo fijo (evita el parpadeo). */
+.cargando-api #tiles,
+.cargando-api #precios strong,
+.cargando-api #btnAbonos { visibility: hidden; }
+.cargando-api #tiles { min-height: 60vh; }

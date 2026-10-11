@@ -46,11 +46,18 @@
     if (!datos.ventaWeb.Trimestral && !datos.ventaWeb.Anual) abonos.textContent = "Entradas";
   }
 
+  /* Mientras carga, el respaldo del HTML está oculto (clase cargando-api, puesta en el <head>).
+     Se muestra lo que haya: los datos de la API, o el respaldo si falla o tarda más de 6 s. */
+  var mostrar = function () { document.documentElement.classList.remove("cargando-api"); };
+  var espera = setTimeout(mostrar, 6000);
   fetch(API + "/api/publico").then(function (r) {
     if (!r.ok) throw new Error(r.status);
     return r.json();
   }).then(function (d) {
     pintarTiles(d, true);
     pintarPrecios(d);
-  }).catch(function () { /* quedan las tarjetas de respaldo con WhatsApp */ });
+  }).catch(function () { /* quedan las tarjetas de respaldo con WhatsApp */ }).then(function () {
+    clearTimeout(espera);
+    mostrar();
+  });
 })();
