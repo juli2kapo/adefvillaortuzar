@@ -21,7 +21,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
   <link rel="icon" type="image/png" href="images/logo-adef.png" />
-  <link rel="stylesheet" href="styles.css?v=20261011" />
+  <link rel="stylesheet" href="styles.css?v=20261011b" />
 </head>
 <body>
 
@@ -98,9 +98,9 @@
               <label class="campo" id="campoEvento">Concierto
                 <select id="cEvento"></select>
               </label>
-              <fieldset class="campo campo-meses" id="campoMeses" hidden>
-                <legend>Elegí 3 meses</legend>
-                <div id="cMeses" class="meses"></div>
+              <fieldset class="campo campo-conciertos" id="campoConciertos" hidden>
+                <legend>Elegí 3 conciertos <span class="opcional" id="cConciertosCuenta">(0 de 3)</span></legend>
+                <div id="cConciertos" class="conciertos-tri"></div>
               </fieldset>
               <div class="campo" role="group" aria-labelledby="catTitulo">
                 <span id="catTitulo">Entradas</span>
@@ -171,7 +171,7 @@
   </script>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileListo" async defer></script>
   <script src="js/ut-client.js?v=20261011" defer></script>
-  <script src="js/entradas-logica.js?v=20261011" defer></script>
-  <script src="js/compra.js?v=20261011" defer></script>
+  <script src="js/entradas-logica.js?v=20261011b" defer></script>
+  <script src="js/compra.js?v=20261011b" defer></script>
 </body>
 </html>

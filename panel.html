@@ -53,6 +53,8 @@
         .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 5px; }
         .month-btn { background: white; border: 1px solid #cbd5e1; padding: 8px; text-align: center; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #64748b; }
         .month-btn.selected { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; box-shadow: 0 2px 4px rgba(99,102,241,0.3); }
+        .month-btn:disabled { opacity: .4; cursor: not-allowed; }
+        .conciertos-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 
         /* --- DESIGNER STYLES --- */
         #view-designer { display: none; flex-direction: row; height: 100%; overflow: hidden; padding: 0; }
@@ -129,8 +131,8 @@
                 </div>
 
                 <div id="trimestreBox" class="input-group" style="display:none;">
-                    <label class="input-label">2. Seleccionar Meses</label>
-                    <div id="monthGridContainer" class="month-grid"></div>
+                    <label class="input-label">2. Elegir 3 conciertos <span id="trimestreCuenta">(0 de 3)</span></label>
+                    <div id="trimestreGrid" class="month-grid conciertos-grid"></div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -437,6 +439,36 @@
         let ocupacion = {};
         let editandoEventoId = null;
 
+        // --- ABONOS ---
+        // Trimestral: 3 conciertos concretos (`conciertos`). Anual: todos los conciertos del ciclo
+        // visibles en la web. Los ocultos no cuentan para ningún abono.
+        const CONCIERTOS_TRIMESTRE = 3;
+        const cicloVisible = (e) => !!e && e.type === 'Ciclo' && e.visibleWeb === true;
+        const finDelDia = (e) => Date.UTC(Number(config.currentYear), Number(e.monthIdx), Number(e.day), 26, 59); // 23:59 en Buenos Aires
+        const fechaCortaEv = (e) => `${String(e.day).padStart(2, '0')}/${String(Number(e.monthIdx) + 1).padStart(2, '0')}`;
+        const elegiblesTrimestre = () => events.filter((e) => cicloVisible(e) && Date.now() <= finDelDia(e)).sort((a, b) => finDelDia(a) - finDelDia(b));
+        const ciclosVisiblesDelAño = () => events.filter(cicloVisible);
+        // ¿La venta `t` es una entrada para el evento `ev`?
+        function cubreEvento(t, ev) {
+            if (!ev) return false;
+            if (String(t.eventId) === String(ev.id)) return true;
+            if (ev.type !== 'Ciclo') return false;
+            if (t.duration === 'Anual') return cicloVisible(ev);
+            if (t.duration === 'Trimestral') {
+                if (Array.isArray(t.conciertos)) return t.conciertos.map(String).includes(String(ev.id));
+                if (Array.isArray(t.meses)) return t.meses.map(Number).includes(Number(ev.monthIdx)); // ventas viejas
+                return !!t.dateText && t.dateText.includes(months[ev.monthIdx]);
+            }
+            return false;
+        }
+        // Entre cuántos conciertos se reparte la plata de la venta.
+        function conciertosQueCubre(t) {
+            if (t.duration === 'Trimestral') return Array.isArray(t.conciertos) && t.conciertos.length ? t.conciertos.length : CONCIERTOS_TRIMESTRE;
+            if (t.duration === 'Anual') return Math.max(1, ciclosVisiblesDelAño().length);
+            return 1;
+        }
+        let conciertosTrimestre = [];
+
         // Make functions globally available since we are inside a module
         window.initApp = async function() {
             try {
@@ -452,7 +484,7 @@
                 fullMonths.forEach((m, i) => {
                     const opt = document.createElement('option'); opt.value = i; opt.innerText = m; monthSel.appendChild(opt);
                 });
-                renderMonthGrid();
+                renderTrimestreGrid();
                 renderCategories(); // From config
                 renderCategorySettingsList(); // For config editor
                 
@@ -533,7 +565,6 @@
         }
 
         // --- GLOBAL UI HELPERS ---
-        let selectedMonthIndices = [];
         let currentMode = 'Suelta';
         let activeFieldId = null;
         let fieldElements = {};
@@ -615,21 +646,26 @@
 
         window.toggleCatWeb = function(index, valor) { config.categories[index].visibleWeb = valor; }
 
-        window.renderMonthGrid = function() {
-            const container = document.getElementById('monthGridContainer'); container.innerHTML = "";
-            months.forEach((m, idx) => {
-                const btn = document.createElement('div'); btn.className = 'month-btn'; btn.innerText = m;
-                btn.onclick = () => {
-                    if (selectedMonthIndices.includes(idx)) {
-                        selectedMonthIndices = selectedMonthIndices.filter(i => i !== idx); btn.classList.remove('selected');
-                    } else {
-                        selectedMonthIndices.push(idx); btn.classList.add('selected');
-                    }
-                    calculateTotal();
-                };
-                container.appendChild(btn);
-            });
+        window.renderTrimestreGrid = function() {
+            const elegibles = elegiblesTrimestre();
+            conciertosTrimestre = conciertosTrimestre.filter((id) => elegibles.some((e) => String(e.id) === id));
+            const lleno = conciertosTrimestre.length >= CONCIERTOS_TRIMESTRE;
+            document.getElementById('trimestreGrid').innerHTML = elegibles.map((e) => {
+                const id = String(e.id), elegido = conciertosTrimestre.includes(id);
+                return `<button type="button" class="month-btn${elegido ? ' selected' : ''}" data-concierto="${esc(id)}"${!elegido && lleno ? ' disabled' : ''}>
+                    ${esc(e.name)}<br><small>${esc(fechaCortaEv(e))} · ${esc(ocupacion[id] || 0)}/${esc(e.cupo ?? 80)}</small></button>`;
+            }).join('') || '<div class="text-xs text-slate-500">No hay conciertos del ciclo visibles por venir.</div>';
+            document.getElementById('trimestreCuenta').textContent = `(${conciertosTrimestre.length} de ${CONCIERTOS_TRIMESTRE})`;
         }
+        document.getElementById('trimestreGrid').addEventListener('click', (ev) => {
+            const b = ev.target.closest('[data-concierto]');
+            if (!b || b.disabled) return;
+            const id = b.getAttribute('data-concierto');
+            if (conciertosTrimestre.includes(id)) conciertosTrimestre = conciertosTrimestre.filter((x) => x !== id);
+            else if (conciertosTrimestre.length < CONCIERTOS_TRIMESTRE) conciertosTrimestre.push(id);
+            renderTrimestreGrid();
+            calculateTotal();
+        });
 
         window.saveNewEvent = async function() {
             const name = document.getElementById('eventName').value;
@@ -743,24 +779,25 @@
             exportSel.innerHTML = '<option value="ALL">Todo el Historial</option>';
 
             events.forEach(e => {
-                const dateStr = `${e.day}/${months[e.monthIdx]} ${e.time}`;
+                const dateStr = esc(`${e.day}/${months[e.monthIdx]} ${e.time}`);
                 const typeLabel = e.type === 'Privado' ? '<span class="text-[10px] bg-amber-100 text-amber-800 px-1 rounded ml-1">PRIVADO</span>' : '';
                 
                 // Add Delete Button to List Item
                 const web = e.visibleWeb ? '<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1 rounded ml-1">WEB</span>' : '';
-                const ocup = e.type === 'Privado' ? '' : `<span class="text-xs text-slate-500 ml-2">${ocupacion[e.id] || 0}/${e.cupo ?? 80}</span>`;
+                const ocup = e.type === 'Privado' ? '' : `<span class="text-xs text-slate-500 ml-2">${esc(ocupacion[e.id] || 0)}/${esc(e.cupo ?? 80)}</span>`;
                 list.innerHTML += `
                     <div class="list-item">
                         <div><b>${esc(e.name)}</b> ${typeLabel}${web} <span class="text-xs text-slate-500">(${dateStr})</span>${ocup}</div>
                         <div class="flex gap-1">
-                            <button onclick="editarEvento('${e.id}')" class="text-indigo-500 hover:text-indigo-700 p-1" title="Editar"><i data-lucide="pencil" width="16"></i></button>
-                            <button onclick="deleteEvent('${e.id}')" class="text-red-400 hover:text-red-600 p-1"><i data-lucide="trash-2" width="16"></i></button>
+                            <button onclick="editarEvento('${esc(e.id)}')" class="text-indigo-500 hover:text-indigo-700 p-1" title="Editar"><i data-lucide="pencil" width="16"></i></button>
+                            <button onclick="deleteEvent('${esc(e.id)}')" class="text-red-400 hover:text-red-600 p-1"><i data-lucide="trash-2" width="16"></i></button>
                         </div>
                     </div>`;
                 
-                sel.innerHTML += `<option value="${e.id}">${esc(e.name)} (${dateStr})</option>`;
-                exportSel.innerHTML += `<option value="${e.id}">${esc(e.name)} (${e.type || 'Ciclo'})</option>`;
+                sel.innerHTML += `<option value="${esc(e.id)}">${esc(e.name)} (${dateStr})</option>`;
+                exportSel.innerHTML += `<option value="${esc(e.id)}">${esc(e.name)} (${esc(e.type || 'Ciclo')})</option>`;
             });
+            renderTrimestreGrid();
             lucide.createIcons();
         }
 
@@ -807,8 +844,10 @@
                 timeText = `${ev.time} hs`;
 
             } else if (type === 'Trimestral') {
+                if (conciertosTrimestre.length !== CONCIERTOS_TRIMESTRE) return showToast("Elegí 3 conciertos");
                 evName = "Pack Trimestral";
-                dateText = selectedMonthIndices.map(i => months[i]).join("-");
+                // El servidor la recalcula igual ("05/09 · 17/10 · 31/10").
+                dateText = elegiblesTrimestre().filter((e) => conciertosTrimestre.includes(String(e.id))).map(fechaCortaEv).join(" · ");
                 timeText = "20:00 hs";
             }
 
@@ -825,7 +864,7 @@
                 price: parseInt(document.getElementById('displayPrice').innerText.replace('$', '').replace(/\./g, '').replace(/,/g, '')),
                 quantity: document.getElementById('ticketAmount').value
             };
-            if (type === 'Trimestral') newTicket.meses = [...selectedMonthIndices].sort((a, b) => a - b);
+            if (type === 'Trimestral') newTicket.conciertos = [...conciertosTrimestre];
 
             if (type === 'Suelta') {
                 const ev = events.find(e => String(e.id) === String(evId));
@@ -835,7 +874,10 @@
             let guardada;
             try { guardada = await api("POST", "/api/admin/ventas", newTicket); } catch (e) { return alert(e.message); }
             tickets.push(guardada);
-            if (type === 'Suelta') ocupacion[evId] = (ocupacion[evId] || 0) + parseInt(guardada.quantity || 1);
+            const ocupa = type === 'Suelta' ? [String(evId)] : type === 'Trimestral' ? (guardada.conciertos || []) : ciclosVisiblesDelAño().map((e) => String(e.id));
+            ocupa.forEach((id) => { ocupacion[id] = (ocupacion[id] || 0) + (parseInt(guardada.quantity) || 1); });
+            conciertosTrimestre = [];
+            renderTrimestreGrid();
             
             document.getElementById('attendeeName').value = "";
             document.getElementById('attendeeCuit').value = "";
@@ -1024,24 +1066,8 @@
             // 1. FILTRO DE FECHAS (Lógica del paso anterior)
             if (filterId !== 'ALL') {
                 const evObj = events.find(e => e.id == filterId);
-                const isPrivate = evObj && evObj.type === 'Privado';
-                const eventMonthName = months[evObj.monthIdx]; // Ej: "Ene"
-
-                dataToExport = dataToExport.filter(t => {
-                    // Si es venta directa para este evento, siempre incluir
-                    if (String(t.eventId) === String(filterId)) return true;
-                    
-                    // Si es evento privado, no aceptar abonos
-                    if (isPrivate) return false;
-
-                    // Lógica de Abonos
-                    if (t.duration === 'Anual') return true; // Anual entra siempre
-                    if (t.duration === 'Trimestral') {
-                        // Verificar si el texto del ticket (ej: "Ene-Feb-Mar") incluye el mes del evento
-                        return t.dateText && t.dateText.includes(eventMonthName);
-                    }
-                    return false;
-                });
+                // Suelta de este evento; trimestral si lo eligió; anual si es del ciclo visible.
+                dataToExport = dataToExport.filter(t => cubreEvento(t, evObj));
             }
 
             // 2. PREPARAR DATOS PRINCIPALES (Tabla Izquierda)
@@ -1074,8 +1100,8 @@
                     let baseUnitPrice = t.price / parseInt(t.quantity || 1);
 
                     // Si es Trimestral o Anual, dividimos el precio unitario VISUAL también
-                    if (t.duration === 'Trimestral') baseUnitPrice = baseUnitPrice / 3;
-                    if (t.duration === 'Anual') baseUnitPrice = baseUnitPrice / 7;
+                    // (trimestral: entre sus 3 conciertos; anual: entre los del ciclo visibles del año)
+                    baseUnitPrice = baseUnitPrice / conciertosQueCubre(t);
 
                     summaryMap[key].unitPrice = baseUnitPrice;
                 }
@@ -1084,9 +1110,7 @@
                 summaryMap[key].quantity += qty;
                 
                 // Calculamos el total acumulado (ya estaba dividido, lo mantenemos igual)
-                let effectiveVal = t.price;
-                if (t.duration === 'Trimestral') effectiveVal = t.price / 3;
-                if (t.duration === 'Anual') effectiveVal = t.price / 7;
+                const effectiveVal = t.price / conciertosQueCubre(t);
                 
                 summaryMap[key].total += effectiveVal;
             });

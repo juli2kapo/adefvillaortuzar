@@ -1,8 +1,7 @@
 /* Lógica pura del formulario de entradas (la usa entradas.js y la prueban en adef-api/tests/web.test.js). */
 (function (raiz) {
   "use strict";
-  var MESES_LARGOS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-  var TIPOS_ARCHIVO = ["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"];
+    var TIPOS_ARCHIVO = ["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"];
 
   function precio(precios, tipo, porcentaje, cantidad) {
     return Math.round((Number(precios[tipo]) || 0) * Number(porcentaje) / 100 * cantidad);
@@ -66,9 +65,24 @@
   function textoPedido(items) {
     return items.map(function (i) { return i.cantidad + " × " + i.categoria; }).join(", ");
   }
+  /* Abono trimestral: 3 conciertos concretos, distintos, del ciclo por venir (mismo mensaje que el servidor). */
+  var CONCIERTOS_TRIMESTRE = 3;
+  var MSG_TRIMESTRE = "Elegí 3 conciertos distintos del ciclo por venir.";
+  function elegiblesTrimestre(eventos) {
+    return eventos.filter(function (e) { return !e.pasado && e.disponibles > 0; });
+  }
+  /* "Ópera (17/10) · Tango (14/11) · …" en el orden de la lista de eventos (por fecha). */
+  function textoConciertos(eventos, ids) {
+    return eventos.filter(function (e) { return ids.indexOf(e.id) >= 0; })
+      .map(function (e) { return e.nombre + " (" + e.fecha + ")"; }).join(" · ");
+  }
+  function trimestreValido(ids) {
+    if (!Array.isArray(ids) || ids.length !== CONCIERTOS_TRIMESTRE) return false;
+    return ids.every(function (id, i) { return id && ids.indexOf(id) === i; });
+  }
   function validarFormulario(c, total, archivo) {
     if (c.tipo === "Suelta" && !c.eventoId) return "Elegí el concierto.";
-    if (c.tipo === "Trimestral" && (!c.meses || c.meses.length !== 3)) return "Elegí 3 meses para el abono trimestral.";
+    if (c.tipo === "Trimestral" && !trimestreValido(c.conciertos)) return MSG_TRIMESTRE;
     var pi = problemaItems(c.items, total);
     if (pi) return pi;
     if (!c.nombre || c.nombre.trim().length < 2) return "Completá tu nombre y apellido.";
@@ -91,7 +105,7 @@
     if (ev.disponibles <= 0) return "Ese concierto está agotado";
     return "";
   }
-  var api = { calcularPedido: calcularPedido, textoPedido: textoPedido, MAX_CATEGORIAS: MAX_CATEGORIAS, MAX_ENTRADAS: MAX_ENTRADAS, es2x1: es2x1, avisoEvento: avisoEvento, MESES_LARGOS: MESES_LARGOS, precio: precio, plata: plata, textoTile: textoTile, textoCategoria: textoCategoria, etiqueta: etiqueta, slug: slug, validarFormulario: validarFormulario };
+  var api = { calcularPedido: calcularPedido, textoPedido: textoPedido, MAX_CATEGORIAS: MAX_CATEGORIAS, MAX_ENTRADAS: MAX_ENTRADAS, es2x1: es2x1, avisoEvento: avisoEvento, CONCIERTOS_TRIMESTRE: CONCIERTOS_TRIMESTRE, elegiblesTrimestre: elegiblesTrimestre, textoConciertos: textoConciertos, precio: precio, plata: plata, textoTile: textoTile, textoCategoria: textoCategoria, etiqueta: etiqueta, slug: slug, validarFormulario: validarFormulario };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else raiz.EntradasLogica = api;
 })(this);

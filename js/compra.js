@@ -89,13 +89,25 @@
   }
 
   function leerFormulario() {
-    var meses = [].slice.call($("cMeses").querySelectorAll("input:checked")).map(function (i) { return Number(i.value); });
+    var tipo = $("cTipo").value;
     return {
-      tipo: $("cTipo").value, eventoId: $("cEvento").value, meses: meses,
+      tipo: tipo, eventoId: tipo === "Suelta" ? $("cEvento").value : "",
+      conciertos: tipo === "Trimestral" ? conciertosElegidos() : undefined,
       items: pedido().items,
       nombre: $("cNombre").value.trim(), email: $("cEmail").value.trim(),
       telefono: $("cTelefono").value.trim(),
     };
+  }
+
+  function conciertosElegidos() {
+    return [].slice.call($("cConciertos").querySelectorAll("input:checked")).map(function (i) { return i.value; });
+  }
+
+  /* Trimestral: al llegar a 3 se deshabilitan los demás; muestra cuántos van. */
+  function refrescarConciertos() {
+    var n = conciertosElegidos().length, max = L.CONCIERTOS_TRIMESTRE;
+    [].slice.call($("cConciertos").querySelectorAll("input")).forEach(function (i) { i.disabled = !i.checked && n >= max; });
+    $("cConciertosCuenta").textContent = "(" + n + " de " + max + ")";
   }
 
   function evento(id) {
@@ -127,7 +139,8 @@
       }
     } else {
       titulo.textContent = tipo === "Anual" ? "Abono Anual" : "Abono Trimestral";
-      texto.textContent = tipo === "Anual" ? "Todos los conciertos que quedan del ciclo" : "3 meses del ciclo a elección";
+      var elegidos = tipo === "Trimestral" ? L.textoConciertos(datos.eventos, conciertosElegidos()) : "";
+      texto.textContent = tipo === "Anual" ? "Todos los conciertos que quedan del ciclo" : (elegidos || "3 conciertos del ciclo a elección");
       img.src = IMAGEN_ABONO;
       img.alt = "";
     }
@@ -138,7 +151,8 @@
   function actualizar() {
     var tipo = $("cTipo").value;
     $("campoEvento").hidden = tipo !== "Suelta";
-    $("campoMeses").hidden = tipo !== "Trimestral";
+    $("campoConciertos").hidden = tipo !== "Trimestral";
+    refrescarConciertos();
     var p = pedido(), t = p.total;
     refrescarCategorias(p);
     $("cPrecioTexto").textContent = p.cantidad > 1 ? "Precio (" + p.cantidad + " entradas)" : "Precio";
@@ -163,8 +177,8 @@
     opciones($("cTipo"), tipos);
     var aLaVenta = datos.eventos.filter(function (e) { return !e.pasado && e.disponibles > 0; });
     opciones($("cEvento"), [["", "Elegí el concierto…"]].concat(aLaVenta.map(function (e) { return [e.id, e.nombre + " — " + e.fecha]; })));
-    $("cMeses").innerHTML = datos.mesesTrimestre.map(function (m) {
-      return '<label><input type="checkbox" value="' + esc(m) + '" /> ' + esc(L.MESES_LARGOS[m]) + "</label>";
+    $("cConciertos").innerHTML = L.elegiblesTrimestre(datos.eventos).map(function (e) {
+      return '<label><input type="checkbox" value="' + esc(e.id) + '" /> ' + esc(e.nombre) + ' <span class="fecha-tri">' + esc(e.fecha) + "</span></label>";
     }).join("");
     pintarCategorias();
     cantidades = cantidadesIniciales();
@@ -217,7 +231,7 @@
       c.turnstile = tokenTs;
       return fetch(API + "/api/compras", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(c) });
     }).then(function (res) {
-      if (res.ok) return res.json().then(listo);
+      if (res.ok) return res.json().then(function (r) { listo(r, c); });
       return res.text().then(function (msg) {
         reiniciarTurnstile();
         error(msg || "No pudimos registrar tu compra. Probá de nuevo.");
@@ -232,9 +246,11 @@
     });
   }
 
-  function listo(r) {
+  function listo(r, c) {
     var items = r.items || [];
-    $("compraListoTexto").textContent = r.evento + " (" + r.fecha + ") · " + r.cantidad + (r.cantidad === 1 ? " entrada" : " entradas") + " · Total " + L.plata(r.total) + ". Te escribimos a " + r.email + ".";
+    var conciertos = c.tipo === "Trimestral" ? L.textoConciertos(datos.eventos, c.conciertos) : "";
+    var que = conciertos ? r.evento + ": " + conciertos : r.evento + " (" + r.fecha + ")";
+    $("compraListoTexto").textContent = que + " · " + r.cantidad + (r.cantidad === 1 ? " entrada" : " entradas") + " · Total " + L.plata(r.total) + ". Te escribimos a " + r.email + ".";
     $("compraListoDetalle").innerHTML = items.map(function (i) {
       return "<li>" + esc(i.cantidad) + " × " + esc(i.categoria) + " — " + esc(L.plata(i.precio)) + "</li>";
     }).join("");
@@ -254,7 +270,7 @@
   /* Tras un 409 (cupo agotado): refresca concierto y cupos sin perder lo que escribió. */
   function recargarDatos() {
     var antes = leerFormulario();
-    var mesesAntes = antes.meses, cantAntes = cantidades;
+    var conciertosAntes = antes.conciertos || [], cantAntes = cantidades;
     return fetch(API + "/api/publico").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
       if (!d) return;
       datos = d;
@@ -262,7 +278,7 @@
       $("cTipo").value = antes.tipo;
       datos.categorias.forEach(function (c) { cantidades[c.nombre] = cantAntes[c.nombre] || 0; });
       if (antes.eventoId) $("cEvento").value = antes.eventoId;
-      [].slice.call($("cMeses").querySelectorAll("input")).forEach(function (i) { i.checked = mesesAntes.indexOf(Number(i.value)) >= 0; });
+      [].slice.call($("cConciertos").querySelectorAll("input")).forEach(function (i) { i.checked = conciertosAntes.indexOf(i.value) >= 0; });
       actualizar();
     }).catch(function () {});
   }
@@ -281,7 +297,7 @@
       setTimeout(function () { cp.textContent = "Copiar"; }, 1500);
     }
   });
-  ["cTipo", "cEvento", "cMeses"].forEach(function (id) {
+  ["cTipo", "cEvento", "cConciertos"].forEach(function (id) {
     $(id).addEventListener("change", actualizar);
     $(id).addEventListener("input", actualizar);
   });

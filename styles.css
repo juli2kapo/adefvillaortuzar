@@ -1094,10 +1094,12 @@ a   { color: inherit; }
 .formulario input:not([type=checkbox]):not([type=file]), .formulario select { display: block; width: 100%; margin-top: 6px; padding: 11px 12px; font: inherit; font-size: 1rem; font-weight: 400; color: var(--ink); border: 1px solid #d6d6d6; border-radius: 8px; background: #fff; }
 .formulario input:focus, .formulario select:focus { outline: 2px solid var(--rose); outline-offset: 1px; border-color: transparent; }
 .formulario .fila { display: flex; gap: 14px; }
-.formulario .campo-meses legend { padding: 0; font-size: .88rem; font-weight: 500; }
-.formulario .meses { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; font-weight: 400; }
-.formulario .meses label { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid #d6d6d6; border-radius: 8px; cursor: pointer; }
-.formulario .meses label:has(input:checked) { border-color: var(--rose); background: #fbf3f3; }
+.formulario .campo-conciertos legend { padding: 0; font-size: .88rem; font-weight: 500; }
+.formulario .conciertos-tri { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 8px; font-weight: 400; }
+.formulario .conciertos-tri label { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid #d6d6d6; border-radius: 8px; cursor: pointer; }
+.formulario .conciertos-tri label:has(input:checked) { border-color: var(--rose); background: #fbf3f3; }
+.formulario .conciertos-tri label:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+.formulario .conciertos-tri .fecha-tri { margin-left: auto; color: #666; font-size: .85rem; white-space: nowrap; }
 
 /* Categorías con contador − n + (una compra puede combinar varias) */
 .categorias { list-style: none; margin: 8px 0 8px; padding: 0; border: 1px solid #d6d6d6; border-radius: 8px; background: #fff; }
@@ -1141,5 +1143,4 @@ a   { color: inherit; }
   .resumen { position: static; }
   .formulario .fila { flex-direction: column; gap: 0; }
   .formulario .campo-chico { flex: 1; }
-  .formulario .meses { grid-template-columns: repeat(2, 1fr); }
 }
