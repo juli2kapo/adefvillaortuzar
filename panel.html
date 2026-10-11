@@ -417,8 +417,8 @@
                     <div id="linkRefUrlBox" class="hidden"><label class="input-label">URL de la página</label><input id="linkRefUrl" class="input-field font-mono text-xs" placeholder="https://adefvillaortuzar.com.ar/entradas.html?evento=…" oninput="armarLinkRef()"></div>
                 </div>
                 <div class="flex items-center gap-2 mt-3">
-                    <input id="linkRefResultado" readonly class="input-field font-mono text-xs flex-1" onclick="this.select()" placeholder="Elegí un referido">
-                    <button onclick="copiarLinkArmado()" class="btn btn-secondary">Copiar</button>
+                    <input id="linkRefResultado" readonly class="input-field font-mono text-xs flex-1 min-w-0" onclick="this.select()" placeholder="Elegí un referido">
+                    <button onclick="copiarLinkArmado()" class="btn btn-secondary shrink-0" style="width:auto">Copiar</button>
                 </div>
                 <p id="linkRefAviso" class="text-[10px] mt-1 text-slate-500">Podés pegar cualquier link del sitio (por ejemplo, el de comprar entradas de un concierto) y se le agrega el código del referido.</p>
             </div>
