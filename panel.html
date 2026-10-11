@@ -403,7 +403,7 @@
                 <label class="flex items-center gap-2 text-sm mb-3"><input type="checkbox" id="ventaWebAnual"> Vender Abono Anual online</label>
                 <div class="grid grid-cols-3 gap-2">
                     <div><label class="input-label">Alias</label><input id="transAlias" class="input-field"></div>
-                    <div><label class="input-label">CBU</label><input id="transCbu" class="input-field"></div>
+                    <div><label class="input-label">CBU/CVU</label><input id="transCbu" class="input-field"></div>
                     <div><label class="input-label">Titular</label><input id="transTitular" class="input-field"></div>
                 </div>
 
@@ -619,6 +619,7 @@
                 el.innerHTML = `
                     <span><b>${esc(c.name)}</b> (${c.payPercent}%)</span>
                     <label class="flex items-center gap-1 text-slate-600"><input type="checkbox" ${c.visibleWeb ? "checked" : ""} onchange="toggleCatWeb(${idx}, this.checked)"> Web</label>
+                    <input type="text" maxlength="80" value="${esc(c.notaWeb || "")}" placeholder="Aclaración web (ej.: hasta 7 años)" title="Se muestra en la página junto al nombre" onchange="setCatNota(${idx}, this.value)" class="border border-slate-200 rounded px-1 py-0.5 text-xs flex-1 mx-2 min-w-0">
                     <button onclick="removeCategory(${idx})" class="text-red-500 hover:text-red-700"><i data-lucide="trash-2" width="14"></i></button>
                 `;
                 container.appendChild(el);
@@ -645,6 +646,10 @@
         }
 
         window.toggleCatWeb = function(index, valor) { config.categories[index].visibleWeb = valor; }
+        window.setCatNota = function(index, valor) {
+            const nota = String(valor || "").trim().slice(0, 80);
+            if (nota) config.categories[index].notaWeb = nota; else delete config.categories[index].notaWeb;
+        }
 
         window.renderTrimestreGrid = function() {
             const elegibles = elegiblesTrimestre();
@@ -985,7 +990,11 @@
         function htmlCompraWeb(p) {
             const t = p.v;
             const colores = { pendiente: 'bg-amber-100 text-amber-800', aprobada: 'bg-emerald-100 text-emerald-800', rechazada: 'bg-red-100 text-red-700', mixto: 'bg-slate-200 text-slate-700' };
-            const mailsMal = [...new Set(p.filas.flatMap(f => Object.entries(f.mails || {}).filter(([, v]) => v !== 'ok').map(([k]) => k)))];
+            // Solo avisamos los mails que importan en el estado actual (un "recibido" que falló
+            // no importa si el pedido ya se aprobó o se rechazó).
+            const MAILS_DE = { pendiente: ['recibido', 'aviso'], aprobada: ['entrada'], rechazada: ['rechazo', 'sinCupo'] };
+            const importan = MAILS_DE[p.estado] || ['recibido', 'aviso', 'entrada', 'rechazo', 'sinCupo'];
+            const mailsMal = [...new Set(p.filas.flatMap(f => Object.entries(f.mails || {}).filter(([k, v]) => v !== 'ok' && importan.includes(k)).map(([k]) => k)))];
             const total = p.filas.reduce((s, f) => s + (Number(f.price) || 0), 0);
             const personas = p.filas.reduce((s, f) => s + (Number(f.quantity) || 0), 0);
             const lineas = p.filas.map(f => `<li>${esc(f.quantity)} × ${esc(f.categoryName)} — $${(Number(f.price) || 0).toLocaleString()}</li>`).join('');
@@ -996,7 +1005,8 @@
             const acciones = p.estado === 'pendiente'
                 ? `<button onclick="aprobarCompra('${esc(p.id)}')" class="btn btn-primary text-xs py-1 px-3">Aprobar</button>
                    <button onclick="rechazarCompra('${esc(p.id)}')" class="btn btn-warning text-xs py-1 px-3">Rechazar</button>`
-                : `<button onclick="reenviarCompra('${esc(p.id)}')" class="text-xs text-indigo-600 underline">Reenviar mail</button>`;
+                : `${p.estado === 'rechazada' ? `<button onclick="aprobarRechazada('${esc(p.id)}')" class="btn btn-primary text-xs py-1 px-3">Aprobar igual</button>` : ''}
+                   <button onclick="reenviarCompra('${esc(p.id)}')" class="text-xs text-indigo-600 underline">Reenviar mail</button>`;
             return `
                 <div class="border border-slate-200 rounded p-3 bg-white">
                     <div class="flex justify-between items-start gap-2">
@@ -1007,6 +1017,7 @@
                             <div class="text-xs text-slate-700">Total del pedido: <b>$${total.toLocaleString()}</b> · ${esc(personas)} ${personas === 1 ? 'persona' : 'personas'}</div>
                             <div class="text-xs text-slate-500">${esc(t.email)} · ${esc(t.telefono)}${t.cuit ? ' · ' + esc(t.cuit) : ''} · ${t.creadaEn ? esc(new Date(t.creadaEn).toLocaleString('es-AR')) : ''}</div>
                             ${t.motivoRechazo ? `<div class="text-xs text-red-600">Motivo: ${esc(t.motivoRechazo)}</div>` : ''}
+                            ${t.reaprobadaEn ? `<div class="text-xs text-slate-500">Aprobada después de un rechazo${t.rechazoPrevio ? ` (motivo anterior: ${esc(t.rechazoPrevio)})` : ''} · ${esc(new Date(t.reaprobadaEn).toLocaleString('es-AR'))}</div>` : ''}
                             ${mailsMal.length ? `<div class="text-xs text-red-600">Mail no enviado: ${esc(mailsMal.join(', '))}</div>` : ''}
                         </div>
                         <div class="flex flex-col gap-1 items-end">${acciones}</div>
@@ -1027,6 +1038,17 @@
             try {
                 const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/aprobar`);
                 reemplazarVentas(r.ventas);
+                showToast(r.mail ? "Aprobada. Entrada enviada por mail." : "Aprobada, pero el mail falló: usá Reenviar.");
+            } catch (e) { alert(e.message); await loadAllData(); }
+        }
+
+        /* Por si se rechazó por error: el Worker la aprueba solo si todavía hay lugar (409 si no). */
+        window.aprobarRechazada = async function(id) {
+            if (!confirm("Esta compra está RECHAZADA. ¿Aprobarla igual?\n\nSolo se puede si todavía hay lugar. Se le manda la entrada con QR por mail al comprador.")) return;
+            try {
+                const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/aprobar`);
+                reemplazarVentas(r.ventas);
+                await loadAllData();
                 showToast(r.mail ? "Aprobada. Entrada enviada por mail." : "Aprobada, pero el mail falló: usá Reenviar.");
             } catch (e) { alert(e.message); await loadAllData(); }
         }

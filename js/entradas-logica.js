@@ -13,11 +13,14 @@
     if (ev.pasado) return (ev.descripcion ? ev.descripcion + " · " : "") + "Concierto pasado";
     return ev.fecha + (ev.hora ? " " + ev.hora : "") + (ev.descripcion ? " · " + ev.descripcion : "");
   }
+  /* "Niños — hasta 7 años (sin cargo)": nombre, aclaración opcional (notaWeb) y descuento. */
   function textoCategoria(c) {
     var p = Number(c.porcentaje);
-    if (p === 0) return c.nombre + " (sin cargo)";
-    if (p > 0 && p < 100) return c.nombre + " (" + (100 - p) + "% de descuento)";
-    return c.nombre;
+    var nota = typeof c.nota === "string" ? c.nota.trim() : "";
+    var base = c.nombre + (nota ? " — " + nota : "");
+    if (p === 0) return base + " (sin cargo)";
+    if (p > 0 && p < 100) return base + " (" + (100 - p) + "% de descuento)";
+    return base;
   }
   function etiqueta(ev) {
     if (ev.pasado) return "";
@@ -28,7 +31,7 @@
   function slug(s) {
     return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   }
-  var MAX_CATEGORIAS = 3, MAX_ENTRADAS = 10;
+  var MAX_CATEGORIAS = 3, MAX_ENTRADAS = 20;
   /* Mismas reglas y mensajes que validarCompra en adef-api (src/reglas.js). */
   function problemaItems(items, total) {
     if (!items || !items.length) return "Elegí al menos una entrada.";
@@ -38,11 +41,11 @@
       var it = items[i], n = it.cantidad;
       if (vistas[it.categoria]) return "No se puede repetir una categoría en la misma compra.";
       vistas[it.categoria] = true;
-      if (!(Number.isInteger(n) && n >= 1 && n <= MAX_ENTRADAS)) return "La cantidad tiene que ser entre 1 y 10.";
+      if (!(Number.isInteger(n) && n >= 1 && n <= MAX_ENTRADAS)) return "La cantidad tiene que ser entre 1 y " + MAX_ENTRADAS + ".";
       if (es2x1(it.categoria) && n % 2 !== 0) return "Con la categoría 2x1 la cantidad tiene que ser par (2, 4, 6…).";
       suma += n;
     }
-    if (suma > MAX_ENTRADAS) return "Podés pedir hasta 10 entradas por compra.";
+    if (suma > MAX_ENTRADAS) return "Podés pedir hasta " + MAX_ENTRADAS + " entradas por compra.";
     if (total === 0 && suma > 4) return "Para entradas sin cargo podés pedir hasta 4 por vez.";
     return null;
   }
