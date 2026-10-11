@@ -397,7 +397,7 @@
                         <select id="exportReferido" class="input-field"><option value="*">Todos juntos (un archivo)</option><option value="+">Un archivo por cada referido</option></select>
                     </div>
                     <button onclick="exportReferidos()" class="btn btn-secondary mb-1"><i data-lucide="users"></i> Descargar reporte de referidos</button>
-                    <div class="text-[10px] text-slate-500 mb-2 italic">Ventas aprobadas que trajo cada referido, con su comisión. Con un concierto elegido, los abonos cuentan prorrateados (igual que el reporte de arriba).</div>
+                    <div class="text-[10px] text-slate-500 mb-2 italic">Ventas aprobadas que trajo cada referido, con su comisión. Con un concierto elegido, el precio de los abonos va prorrateado (igual que el reporte de arriba).</div>
                 </div>
             </div>
         </div>
@@ -1432,23 +1432,23 @@
             const pct = (p) => p === null ? 'A definir' : p + '%';
             const rows = rep.filas.map(f => {
                 const t = f.venta;
-                const fila = {
-                    Fecha: new Date(fechaVenta(t)).toLocaleDateString(),
-                    Referido: f.nombre,
+                const fila = { Fecha: new Date(fechaVenta(t)).toLocaleDateString() };
+                if (!uno) fila.Referido = f.nombre; // en el archivo de una sola persona no hace falta
+                Object.assign(fila, {
                     Comprador: t.attendee,
                     Evento: t.eventName,
                     Tipo: t.duration,
                     Categoria: t.categoryName,
                     Cantidad: Number(t.quantity) || 0,
-                    Precio: Number(t.price) || 0,
-                };
-                if (evObj) fila['Valor en este concierto'] = Math.round(f.valor);
+                    Precio: Math.round(f.valor), // con concierto elegido, el abono ya prorrateado (como el Cheat Sheet)
+                });
                 fila['Comisión %'] = pct(f.porcentaje);
                 fila['Comisión $'] = f.comision === null ? '' : f.comision;
                 return fila;
             });
             const resumen = rep.resumen.map(s => {
-                const fila = { Referido: s.nombre, 'Comisión %': pct(s.porcentaje), Pedidos: s.pedidos, Entradas: s.entradas, Total: s.total, 'Comisión $': s.comision === null ? 'A definir' : s.comision };
+                const fila = uno ? {} : { Referido: s.nombre };
+                Object.assign(fila, { 'Comisión %': pct(s.porcentaje), Pedidos: s.pedidos, Entradas: s.entradas, Total: s.total, 'Comisión $': s.comision === null ? 'A definir' : s.comision });
                 if (!evObj) { // pagos registrados: solo tienen sentido sobre el historial completo
                     const r = referidos.find(x => x.codigo === s.codigo);
                     const pagado = (r?.pagos || []).reduce((a, p) => a + (Number(p.monto) || 0), 0);
