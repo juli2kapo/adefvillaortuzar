@@ -52,7 +52,7 @@
       tipo: $("cTipo").value, eventoId: $("cEvento").value, meses: meses,
       categoria: $("cCategoria").value, cantidad: cantidadValida(),
       nombre: $("cNombre").value.trim(), email: $("cEmail").value.trim(),
-      telefono: $("cTelefono").value.trim(), documento: $("cDocumento").value.trim(),
+      telefono: $("cTelefono").value.trim(),
     };
   }
 
