@@ -392,6 +392,10 @@
                     <button onclick="exportAllSales()" class="btn btn-secondary mb-3"><i data-lucide="file-spreadsheet"></i> Descargar Excel / CSV</button>
                     <div class="text-[10px] text-slate-500 mb-2 italic">Incluye tabla resumen (Cheat Sheet)</div>
 
+                    <div class="input-group">
+                        <label class="input-label">Referidos:</label>
+                        <select id="exportReferido" class="input-field"><option value="*">Todos juntos (un archivo)</option><option value="+">Un archivo por cada referido</option></select>
+                    </div>
                     <button onclick="exportReferidos()" class="btn btn-secondary mb-1"><i data-lucide="users"></i> Descargar reporte de referidos</button>
                     <div class="text-[10px] text-slate-500 mb-2 italic">Ventas aprobadas que trajo cada referido, con su comisión. Con un concierto elegido, los abonos cuentan prorrateados (igual que el reporte de arriba).</div>
                 </div>
@@ -1409,13 +1413,22 @@
         }
 
         // Reporte de referidos: una fila por venta referida + resumen por referido con la comisión.
-        window.exportReferidos = function() {
-            const filterId = document.getElementById('exportFilterEvent').value;
-            const evObj = filterId === 'ALL' ? null : events.find(e => e.id == filterId);
+        // Se baja todo junto, un archivo por referido (para mandarle a cada uno lo suyo) o el de uno solo.
+        function renderSelectReporteReferido() {
+            const sel = document.getElementById('exportReferido');
+            if (!sel) return;
+            const antes = sel.value;
+            sel.innerHTML = '<option value="*">Todos juntos (un archivo)</option><option value="+">Un archivo por cada referido</option>'
+                + referidos.map(r => `<option value="${esc(r.codigo)}">Solo ${esc(r.nombre)}</option>`).join('');
+            if ([...sel.options].some(o => o.value === antes)) sel.value = antes;
+        }
+
+        // Arma el Excel de las ventas `ventas` (ya filtradas). Con `uno` = true es el archivo de un solo referido (sin fila TOTAL).
+        function libroReferidos(ventas, evObj, uno) {
             // Por concierto, el abono se imputa prorrateado (como el Cheat Sheet); en el historial, entero.
             const valorDe = (t) => (Number(t.price) || 0) / (evObj ? conciertosQueCubre(t) : 1);
-            const rep = EntradasLogica.reporteReferidos(ventasDelFiltro(filterId), referidos, valorDe);
-            if (!rep.filas.length) return showToast(evObj ? 'No hay ventas aprobadas con referido para ese concierto' : 'Todavía no hay ventas aprobadas con referido');
+            const rep = EntradasLogica.reporteReferidos(ventas, referidos, valorDe);
+            if (!rep.filas.length) return null;
             const pct = (p) => p === null ? 'A definir' : p + '%';
             const rows = rep.filas.map(f => {
                 const t = f.venta;
@@ -1444,17 +1457,44 @@
                 }
                 return fila;
             });
-            const tot = rep.totales;
-            const filaTotal = { Referido: 'TOTAL', 'Comisión %': '', Pedidos: tot.pedidos, Entradas: tot.entradas, Total: tot.total, 'Comisión $': tot.comision };
-            if (!evObj) { filaTotal.Pagado = resumen.reduce((a, f) => a + f.Pagado, 0); filaTotal['A pagar'] = resumen.reduce((a, f) => a + (Number(f['A pagar']) || 0), 0); }
-            resumen.push(filaTotal);
-
+            if (!uno) {
+                const tot = rep.totales;
+                const filaTotal = { Referido: 'TOTAL', 'Comisión %': '', Pedidos: tot.pedidos, Entradas: tot.entradas, Total: tot.total, 'Comisión $': tot.comision };
+                if (!evObj) { filaTotal.Pagado = resumen.reduce((a, f) => a + f.Pagado, 0); filaTotal['A pagar'] = resumen.reduce((a, f) => a + (Number(f['A pagar']) || 0), 0); }
+                resumen.push(filaTotal);
+            }
             const ws = XLSX.utils.json_to_sheet(rows);
             const colResumen = XLSX.utils.encode_col(Object.keys(rows[0]).length + 1); // una columna libre en el medio
             XLSX.utils.sheet_add_json(ws, resumen, { origin: colResumen + '1' });
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Referidos");
-            XLSX.writeFile(wb, evObj ? `Referidos_${evObj.name.replace(/\s+/g, '_')}.xlsx` : 'Referidos.xlsx');
+            return wb;
+        }
+
+        const paraArchivo = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9-]+/g, '_').replace(/^_|_$/g, '');
+
+        window.exportReferidos = async function() {
+            const filterId = document.getElementById('exportFilterEvent').value;
+            const evObj = filterId === 'ALL' ? null : events.find(e => e.id == filterId);
+            const quien = document.getElementById('exportReferido').value;
+            const ventas = ventasDelFiltro(filterId).filter(t => t.referido);
+            const sufijo = evObj ? '_' + paraArchivo(evObj.name) : '';
+            const vacio = evObj ? 'No hay ventas aprobadas con referido para ese concierto' : 'Todavía no hay ventas aprobadas con referido';
+            if (quien === '*') {
+                const wb = libroReferidos(ventas, evObj, false);
+                return wb ? XLSX.writeFile(wb, `Referidos${sufijo}.xlsx`) : showToast(vacio);
+            }
+            const codigos = quien === '+' ? [...new Set(ventas.map(t => t.referido))] : [quien];
+            let bajados = 0;
+            for (const cod of codigos) {
+                const wb = libroReferidos(ventas.filter(t => t.referido === cod), evObj, true);
+                if (!wb) continue;
+                if (bajados) await new Promise(r => setTimeout(r, 400)); // el navegador frena varias descargas seguidas
+                XLSX.writeFile(wb, `Referidos_${paraArchivo(nombreReferido(cod))}${sufijo}.xlsx`);
+                bajados++;
+            }
+            if (!bajados) showToast(quien === '+' ? vacio : `${nombreReferido(quien)} no tiene ventas aprobadas${evObj ? ' para ese concierto' : ''}`);
+            else if (bajados > 1) showToast(`${bajados} archivos descargados (si el navegador pregunta, permití varias descargas)`);
         }
 
 
@@ -1517,6 +1557,7 @@
 
         window.renderReferidos = function() {
             renderSelectReferido();
+            renderSelectReporteReferido();
             renderArmadorLink();
             const cont = document.getElementById('tablaReferidos');
             if (!referidos.length) {
