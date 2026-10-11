@@ -14,6 +14,12 @@
     if (ev.pasado) return (ev.descripcion ? ev.descripcion + " · " : "") + "Concierto pasado";
     return ev.fecha + (ev.hora ? " " + ev.hora : "") + (ev.descripcion ? " · " + ev.descripcion : "");
   }
+  function textoCategoria(c) {
+    var p = Number(c.porcentaje);
+    if (p === 0) return c.nombre + " (sin cargo)";
+    if (p > 0 && p < 100) return c.nombre + " (" + (100 - p) + "% de descuento)";
+    return c.nombre;
+  }
   function etiqueta(ev) {
     if (ev.pasado) return "";
     if (ev.disponibles <= 0) return "Agotado";
@@ -49,7 +55,7 @@
     if (ev.disponibles <= 0) return "Ese concierto está agotado";
     return "";
   }
-  var api = { es2x1: es2x1, avisoEvento: avisoEvento, MESES_LARGOS: MESES_LARGOS, precio: precio, plata: plata, textoTile: textoTile, etiqueta: etiqueta, slug: slug, validarFormulario: validarFormulario };
+  var api = { es2x1: es2x1, avisoEvento: avisoEvento, MESES_LARGOS: MESES_LARGOS, precio: precio, plata: plata, textoTile: textoTile, textoCategoria: textoCategoria, etiqueta: etiqueta, slug: slug, validarFormulario: validarFormulario };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else raiz.EntradasLogica = api;
 })(this);

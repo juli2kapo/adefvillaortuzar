@@ -1068,7 +1068,12 @@ a   { color: inherit; }
 .resumen-titulo { font-family: var(--serif); font-weight: 400; font-size: 1.5rem; margin: 18px 0 6px; color: var(--ink); }
 .resumen-texto { margin: 0; font-size: .95rem; color: var(--ink-soft); }
 .resumen-badge { margin: 8px 0 0; font-size: .85rem; font-weight: 600; color: var(--rose); letter-spacing: .5px; }
-.resumen-total { display: flex; justify-content: space-between; align-items: baseline; margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: 1rem; }
+.resumen-linea { display: flex; justify-content: space-between; margin: 8px 0 0; font-size: .95rem; color: var(--ink); }
+.resumen-precio { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.resumen-linea[hidden] { display: none; }
+.resumen-descuento { color: #812424; font-weight: 600; animation: aparece .35s ease-out; }
+@keyframes aparece { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.resumen-total { display: flex; justify-content: space-between; align-items: baseline; margin: 12px 0 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: 1rem; }
 .resumen-total strong { font-family: var(--serif); font-weight: 400; font-size: 1.9rem; color: var(--ink); }
 .transferencia { background: #f7f1f1; border-radius: 8px; padding: 12px 14px; margin: 16px 0 0; font-size: .9rem; }
 .transferencia[hidden] { display: none; }

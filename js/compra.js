@@ -56,10 +56,19 @@
     };
   }
 
+  function categoriaElegida() {
+    var nombre = $("cCategoria").value;
+    return datos.categorias.filter(function (x) { return x.nombre === nombre; })[0] || null;
+  }
+
   function total() {
-    var c = leerFormulario();
-    var cat = datos.categorias.filter(function (x) { return x.nombre === c.categoria; })[0];
+    var c = leerFormulario(), cat = categoriaElegida();
     return cat ? L.precio(datos.precios, c.tipo, cat.porcentaje, c.cantidad) : 0;
+  }
+
+  function subtotal() {
+    var c = leerFormulario();
+    return L.precio(datos.precios, c.tipo, 100, c.cantidad);
   }
 
   function evento(id) {
@@ -103,7 +112,16 @@
     var tipo = $("cTipo").value;
     $("campoEvento").hidden = tipo !== "Suelta";
     $("campoMeses").hidden = tipo !== "Trimestral";
-    var t = total();
+    var t = total(), sub = subtotal(), cat = categoriaElegida();
+    $("cSubtotal").textContent = L.plata(sub);
+    var conDescuento = sub - t > 0;
+    if (conDescuento) {
+      $("cDescuentoTexto").textContent = cat.porcentaje === 0 ? cat.nombre + ": sin cargo" : "Descuento " + cat.nombre + " (" + (100 - cat.porcentaje) + "%)";
+      $("cDescuento").textContent = "−" + L.plata(sub - t);
+    }
+    var fila = $("filaDescuento");
+    if (conDescuento && fila.hidden) { fila.hidden = false; fila.style.animation = "none"; void fila.offsetWidth; fila.style.animation = ""; }
+    fila.hidden = !conDescuento;
     $("cTotal").textContent = L.plata(t);
     $("bloquePago").hidden = t === 0;
     $("bloqueTransf").hidden = t === 0;
@@ -122,7 +140,7 @@
     $("cMeses").innerHTML = datos.mesesTrimestre.map(function (m) {
       return '<label><input type="checkbox" value="' + esc(m) + '" /> ' + esc(L.MESES_LARGOS[m]) + "</label>";
     }).join("");
-    opciones($("cCategoria"), datos.categorias.map(function (c) { return [c.nombre, c.nombre]; }));
+    opciones($("cCategoria"), datos.categorias.map(function (c) { return [c.nombre, L.textoCategoria(c)]; }));
     var t = datos.transferencia;
     $("tAlias").textContent = t.alias;
     $("tCbu").textContent = t.cbu;
