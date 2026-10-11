@@ -30,6 +30,13 @@
         .nav-btn:hover { background: #f8fafc; }
         .nav-btn.active { background: #e0e7ff; color: var(--primary); border-color: #c7d2fe; }
         .nav-btn svg { width: 20px; height: 20px; margin-bottom: 2px; }
+        /* Celular: las 7 pestañas no entran en una fila (centradas se cortaban la primera y la última); van en grilla de 4. */
+        @media (max-width: 640px) {
+            #app-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+            .nav-btn { padding: 6px 2px; font-size: 0.68rem; line-height: 1.1; text-align: center; }
+            .nav-btn svg { width: 18px; height: 18px; }
+            #app-header { padding: 8px 12px; }
+        }
 
         #main-content { flex: 1; overflow: hidden; position: relative; }
         .view-section { display: none; height: 100%; overflow-y: auto; padding-bottom: 80px; }
