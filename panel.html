@@ -5,7 +5,7 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="no-referrer">
     <script src="js/ut-client.js?v=20261011" defer></script>
-    <script src="js/referido.js?v=20261011f" data-sin-cookie></script>
+    <script src="js/referido.js?v=20261011g" data-sin-cookie></script>
     <script src="js/entradas-logica.js?v=20261011f"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Concert Manager (panel privado)</title>
@@ -408,6 +408,19 @@
                     <button onclick="guardarReferido()" class="btn btn-primary"><span id="refBtnGuardar">Agregar referido</span></button>
                     <button id="refBtnCancelar" onclick="limpiarFormReferido()" class="btn btn-secondary hidden">Cancelar</button>
                 </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><i data-lucide="link"></i> Armar link de referido a una página</div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+                    <div><label class="input-label">Referido</label><select id="linkRefQuien" class="input-field" onchange="armarLinkRef()"></select></div>
+                    <div><label class="input-label">Página</label><select id="linkRefDestino" class="input-field" onchange="armarLinkRef()"></select></div>
+                    <div id="linkRefUrlBox" class="hidden"><label class="input-label">URL de la página</label><input id="linkRefUrl" class="input-field font-mono text-xs" placeholder="https://adefvillaortuzar.com.ar/entradas.html?evento=…" oninput="armarLinkRef()"></div>
+                </div>
+                <div class="flex items-center gap-2 mt-3">
+                    <input id="linkRefResultado" readonly class="input-field font-mono text-xs flex-1" onclick="this.select()" placeholder="Elegí un referido">
+                    <button onclick="copiarLinkArmado()" class="btn btn-secondary">Copiar</button>
+                </div>
+                <p id="linkRefAviso" class="text-[10px] mt-1 text-slate-500">Podés pegar cualquier link del sitio (por ejemplo, el de comprar entradas de un concierto) y se le agrega el código del referido.</p>
             </div>
             <div class="card overflow-x-auto">
                 <div class="card-header"><i data-lucide="users"></i> Referidos</div>
@@ -1373,8 +1386,51 @@
             if ([...sel.options].some(o => o.value === antes)) sel.value = antes;
         }
 
+        // Armar link a una página puntual (AdefReferido.linkA agrega ?r= a la URL elegida o pegada).
+        function renderArmadorLink() {
+            const quien = document.getElementById('linkRefQuien'), destino = document.getElementById('linkRefDestino');
+            const antesQuien = quien.value, antesDestino = destino.value;
+            quien.innerHTML = referidos.filter(r => r.activo)
+                .map(r => `<option value="${esc(r.codigo)}">${esc(r.nombre)} (${esc(r.codigo)})</option>`).join('');
+            const proximos = events.filter(e => e.visibleWeb === true && Date.now() <= finDelDia(e)).sort((a, b) => finDelDia(a) - finDelDia(b));
+            destino.innerHTML = '<option value="conciertos.html">Conciertos (listado)</option>'
+                + '<option value="./">Inicio</option>'
+                + '<option value="entradas.html?abono=1">Comprar abono</option>'
+                + (proximos.length ? '<optgroup label="Comprar entradas de…">' + proximos.map(e =>
+                    `<option value="entradas.html?evento=${esc(encodeURIComponent(e.id))}">${esc(e.name)} (${esc(fechaCortaEv(e))})</option>`).join('') + '</optgroup>' : '')
+                + '<option value="*">Otra página (pegar URL)…</option>';
+            if ([...quien.options].some(o => o.value === antesQuien)) quien.value = antesQuien;
+            if ([...destino.options].some(o => o.value === antesDestino)) destino.value = antesDestino;
+            armarLinkRef();
+        }
+
+        window.armarLinkRef = function() {
+            const cod = document.getElementById('linkRefQuien').value;
+            const dest = document.getElementById('linkRefDestino').value;
+            const otra = dest === '*';
+            document.getElementById('linkRefUrlBox').classList.toggle('hidden', !otra);
+            const res = document.getElementById('linkRefResultado'), aviso = document.getElementById('linkRefAviso');
+            const url = otra ? document.getElementById('linkRefUrl').value : dest; // ruta relativa: linkA la arma sobre adefvillaortuzar.com.ar
+            const link = cod ? AdefReferido.linkA(cod, url) : null;
+            res.value = link || '';
+            aviso.className = 'text-[10px] mt-1 text-slate-500';
+            if (!cod) aviso.textContent = referidos.length ? 'No hay referidos activos.' : 'Primero agregá un referido.';
+            else if (!link) { aviso.textContent = 'Esa URL no es del sitio (adefvillaortuzar.com.ar).'; aviso.className = 'text-[10px] mt-1 text-red-600'; }
+            else if (/^https?:\/\/(localhost|127\.0\.0\.1)/.test(link)) { aviso.textContent = 'Ojo: es un link local, solo sirve en esta compu para probar. Para compartir, usá la URL de adefvillaortuzar.com.ar.'; aviso.className = 'text-[10px] mt-1 text-amber-600'; }
+            else aviso.textContent = 'Podés pegar cualquier link del sitio (por ejemplo, el de comprar entradas de un concierto) y se le agrega el código del referido.';
+        }
+
+        window.copiarLinkArmado = function() {
+            const link = document.getElementById('linkRefResultado').value;
+            if (!link) return showToast('No hay link para copiar');
+            const fallback = () => prompt('Copiá el link:', link);
+            if (!navigator.clipboard) return fallback();
+            navigator.clipboard.writeText(link).then(() => showToast('Link copiado'), fallback);
+        }
+
         window.renderReferidos = function() {
             renderSelectReferido();
+            renderArmadorLink();
             const cont = document.getElementById('tablaReferidos');
             if (!referidos.length) {
                 cont.innerHTML = '<p class="text-sm text-slate-500">Todavía no hay referidos.</p>';

@@ -40,8 +40,22 @@
     return u.pathname + u.search + u.hash;
   }
   function link(codigo) { return LINK_BASE + codificar(codigo); }
+  /* Link de referido a una página puntual: URL pegada (del sitio o localhost) o ruta ("entradas.html?evento=…").
+     Vacío = conciertos. Otro dominio o esquema raro → null. */
+  var SITIO = "https://adefvillaortuzar.com.ar/";
+  function linkA(codigo, destino) {
+    var d = String(destino || "").trim();
+    if (!d) return link(codigo);
+    if (/^(www\.)?adefvillaortuzar\.com\.ar(\/|$)/i.test(d)) d = "https://" + d;
+    var u;
+    try { u = new URL(d, SITIO); } catch (e) { return null; }
+    var propio = /^(www\.)?adefvillaortuzar\.com\.ar$/i.test(u.hostname) || /^(localhost|127\.0\.0\.1)$/.test(u.hostname);
+    if (!/^https?:$/.test(u.protocol) || !propio) return null;
+    u.searchParams.set("r", codificar(codigo));
+    return u.href;
+  }
 
-  var api = { codificar: codificar, decodificar: decodificar, leer: leer, aGuardar: aGuardar, cookies: cookies, sinParametro: sinParametro, link: link, LINK_BASE: LINK_BASE };
+  var api = { codificar: codificar, decodificar: decodificar, leer: leer, aGuardar: aGuardar, cookies: cookies, sinParametro: sinParametro, link: link, linkA: linkA, LINK_BASE: LINK_BASE };
   if (typeof module !== "undefined" && module.exports) { module.exports = api; return; }
   raiz.AdefReferido = api;
 
