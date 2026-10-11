@@ -5,6 +5,8 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="no-referrer">
     <script src="js/ut-client.js?v=20261011" defer></script>
+    <script src="js/referido.js?v=20261011f" data-sin-cookie></script>
+    <script src="js/entradas-logica.js?v=20261011f"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Concert Manager (panel privado)</title>
 
@@ -113,6 +115,7 @@
         <button class="nav-btn" onclick="switchTab('designer', this)"><i data-lucide="layout-template"></i> Diseño</button>
         <button class="nav-btn" onclick="switchTab('reports', this)"><i data-lucide="bar-chart-3"></i> Reportes</button>
         <button class="nav-btn" onclick="switchTab('config', this)"><i data-lucide="settings"></i> Config</button>
+        <button class="nav-btn" onclick="switchTab('referidos', this)"><i data-lucide="users"></i> Referidos</button>
     </nav>
 
     <div id="main-content">
@@ -157,6 +160,11 @@
                         <input type="text" id="attendeeName" class="input-field" placeholder="Nombre Completo">
                         <input type="text" id="attendeeCuit" class="input-field" placeholder="DNI / CUIT (Opcional)">
                     </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Referido (opcional)</label>
+                    <select id="saleReferido" class="input-field"><option value="">Sin referido</option></select>
                 </div>
 
                 <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-lg text-center mb-4">
@@ -314,6 +322,15 @@
                                 <button onclick="toggleItalic()" class="flex-1 bg-slate-700 text-white text-xs py-1 rounded italic hover:bg-slate-600">I</button>
                             </div>
 
+                            <div id="fieldAlignBox">
+                                <div class="flex gap-1">
+                                    <button data-align="left" onclick="setFieldAlign('left')" title="Alinear a la izquierda" class="align-btn flex-1 bg-slate-700 text-white py-1 rounded hover:bg-slate-600 flex justify-center"><i data-lucide="align-left" width="14"></i></button>
+                                    <button data-align="center" onclick="setFieldAlign('center')" title="Centrar" class="align-btn flex-1 bg-slate-700 text-white py-1 rounded hover:bg-slate-600 flex justify-center"><i data-lucide="align-center" width="14"></i></button>
+                                    <button data-align="right" onclick="setFieldAlign('right')" title="Alinear a la derecha" class="align-btn flex-1 bg-slate-700 text-white py-1 rounded hover:bg-slate-600 flex justify-center"><i data-lucide="align-right" width="14"></i></button>
+                                </div>
+                                <p class="text-[10px] text-slate-500 mt-1">Derecha: el texto termina siempre en el mismo punto y crece hacia la izquierda. Centro: crece para los dos lados.</p>
+                            </div>
+
                             <div class="pt-2 mt-2 border-t border-slate-700">
                                 <label class="text-[10px] text-orange-400 uppercase font-bold block mb-1">Vincular Dato (Auto-Relleno)</label>
                                 <select id="fieldIdMapper" onchange="updateFieldIdMap()" class="w-full bg-slate-900 border border-orange-900 text-orange-100 rounded px-2 py-1 text-xs">
@@ -375,6 +392,28 @@
                     <div class="text-[10px] text-slate-500 mb-2 italic">Incluye tabla resumen (Cheat Sheet)</div>
                 </div>
             </div>
+        </div>
+
+        <div id="view-referidos" class="view-section container-scroll" style="max-width:1200px">
+            <div class="card">
+                <div class="card-header"><i data-lucide="user-plus"></i> <span id="refFormTitulo">Nuevo referido</span></div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                    <div><label class="input-label">Nombre</label><input id="refNombre" class="input-field" maxlength="60" placeholder="Ej: Isidro" oninput="sugerirCodigoRef()"></div>
+                    <div><label class="input-label">Código (va en el link)</label><input id="refCodigo" class="input-field font-mono" maxlength="30" placeholder="isidro"></div>
+                    <div><label class="input-label">Comisión %</label><input id="refPorcentaje" type="number" min="0" max="100" step="0.5" class="input-field" placeholder="A definir"></div>
+                    <label class="flex items-center gap-2 text-sm pb-3"><input type="checkbox" id="refActivo" checked> Activo</label>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1">El código no se puede cambiar después (rompería los links y las ventas): para otro código, creá otro referido. Comisión vacía = "A definir".</p>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="guardarReferido()" class="btn btn-primary"><span id="refBtnGuardar">Agregar referido</span></button>
+                    <button id="refBtnCancelar" onclick="limpiarFormReferido()" class="btn btn-secondary hidden">Cancelar</button>
+                </div>
+            </div>
+            <div class="card overflow-x-auto">
+                <div class="card-header"><i data-lucide="users"></i> Referidos</div>
+                <div id="tablaReferidos"></div>
+            </div>
+            <div id="detalleReferido"></div>
         </div>
 
         <div id="view-config" class="view-section container-scroll">
@@ -528,6 +567,7 @@
         
         let events = [];
         let tickets = [];
+        let referidos = [];
         let config = {
             currentYear: new Date().getFullYear(),
             priceBase: 10000, priceTrimestral: 25000, priceAnual: 60000,
@@ -569,6 +609,7 @@
                     events = d.eventos;
                     tickets = d.ventas;
                     ocupacion = d.ocupacion || {};
+                    referidos = d.referidos || [];
                     Object.assign(templates, d.plantillas || {});
                     repintarTodo();
                 } while (recargarOtraVez);
@@ -583,6 +624,7 @@
             filterTicketList();
             updateReports();
             renderComprasWeb();
+            renderReferidos();
         }
 
         /* Refresco automático (Compras web visible cada 60 s y al volver a la ventana): se saltea si
@@ -615,7 +657,7 @@
                 setTimeout(fitCanvasToScreen, 100);
             }
             // Al entrar a una vista con datos, traerlos de nuevo (ventas borradas, compras web nuevas…).
-            if (['sales', 'compras', 'events', 'reports'].includes(tabId) && CLAVE && !generandoEntradas) {
+            if (['sales', 'compras', 'events', 'reports', 'referidos'].includes(tabId) && CLAVE && !generandoEntradas) {
                 loadAllData().catch(e => console.warn('No se pudo refrescar', e));
             }
         }
@@ -911,6 +953,8 @@
                 quantity: document.getElementById('ticketAmount').value
             };
             if (type === 'Trimestral') newTicket.conciertos = [...conciertosTrimestre];
+            const refElegido = document.getElementById('saleReferido').value;
+            if (refElegido) newTicket.referido = refElegido;
 
             if (type === 'Suelta') {
                 const ev = events.find(e => String(e.id) === String(evId));
@@ -927,6 +971,7 @@
             
             document.getElementById('attendeeName').value = "";
             document.getElementById('attendeeCuit').value = "";
+            document.getElementById('saleReferido').value = "";
             repintarTodo();
             showToast("Venta Registrada en DB");
         }
@@ -999,13 +1044,14 @@
                     <div>
                         <div class="font-bold text-sm text-slate-800">${esc(t.attendee)}${t.origen === 'web' ? ' <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1 rounded">WEB</span>' : ''}</div>
                         <div class="text-xs text-slate-500">${esc(t.duration)} - ${esc(t.eventName)} (${esc(t.quantity)})</div>
+                        ${t.referido ? `<div class="text-xs text-violet-700">Referido: ${esc(nombreReferido(t.referido))}</div>` : ''}
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="font-mono font-bold text-slate-700">$${t.price}</span>
-                        <button onclick="loadTicketForPrinting('${t.id}')" class="p-2 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100" title="Imprimir">
+                        <span class="font-mono font-bold text-slate-700">$${esc(t.price)}</span>
+                        <button onclick="loadTicketForPrinting('${esc(t.id)}')" class="p-2 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100" title="Imprimir">
                             <i data-lucide="printer" width="16"></i>
                         </button>
-                        <button onclick="deleteTicket('${t.id}')" class="p-2 bg-red-50 text-red-500 rounded hover:bg-red-100" title="Eliminar">
+                        <button onclick="deleteTicket('${esc(t.id)}')" class="p-2 bg-red-50 text-red-500 rounded hover:bg-red-100" title="Eliminar">
                             <i data-lucide="trash-2" width="16"></i>
                         </button>
                     </div>
@@ -1066,6 +1112,7 @@
                             <ul class="text-xs text-slate-700 my-1 pl-3 list-disc">${lineas}</ul>
                             <div class="text-xs text-slate-700">Total del pedido: <b>$${total.toLocaleString()}</b> · ${esc(personas)} ${personas === 1 ? 'persona' : 'personas'}</div>
                             <div class="text-xs text-slate-500">${esc(t.email)} · ${esc(t.telefono)}${t.cuit ? ' · ' + esc(t.cuit) : ''} · ${t.creadaEn ? esc(new Date(t.creadaEn).toLocaleString('es-AR')) : ''}</div>
+                            ${t.referido ? `<div class="text-xs text-violet-700">Referido: ${esc(nombreReferido(t.referido))}</div>` : ''}
                             ${t.motivoRechazo ? `<div class="text-xs text-red-600">Motivo: ${esc(t.motivoRechazo)}</div>` : ''}
                             ${t.reaprobadaEn ? `<div class="text-xs text-slate-500">Aprobada después de un rechazo${t.rechazoPrevio ? ` (motivo anterior: ${esc(t.rechazoPrevio)})` : ''} · ${esc(new Date(t.reaprobadaEn).toLocaleString('es-AR'))}</div>` : ''}
                             ${mailsMal.length ? `<div class="text-xs text-red-600">Mail no enviado: ${esc(mailsMal.join(', '))}</div>` : ''}
@@ -1311,6 +1358,193 @@
         }
 		
 
+        // --- REFERIDOS ---
+        // Link: conciertos.html?r=<código en base64url> (js/referido.js, el mismo que usa el sitio).
+        // Comisión sobre lo aprobado; con % vacío ("A definir") no se calcula.
+        const nombreReferido = (cod) => referidos.find(r => r.codigo === cod)?.nombre || cod;
+        const pesosRef = (n) => n === null || n === undefined ? '—' : '$' + Math.round(n).toLocaleString('es-AR');
+        let editandoRef = null, refAbierto = null, codigoSugerido = '';
+
+        function renderSelectReferido() {
+            const sel = document.getElementById('saleReferido');
+            const antes = sel.value;
+            sel.innerHTML = '<option value="">Sin referido</option>' + referidos.filter(r => r.activo)
+                .map(r => `<option value="${esc(r.codigo)}">${esc(r.nombre)} (${esc(r.codigo)})</option>`).join('');
+            if ([...sel.options].some(o => o.value === antes)) sel.value = antes;
+        }
+
+        window.renderReferidos = function() {
+            renderSelectReferido();
+            const cont = document.getElementById('tablaReferidos');
+            if (!referidos.length) {
+                cont.innerHTML = '<p class="text-sm text-slate-500">Todavía no hay referidos.</p>';
+            } else {
+                const th = (t, c = '') => `<th class="px-2 py-1 text-left font-bold text-slate-500 uppercase text-[10px] ${c}">${t}</th>`;
+                const td = (t, c = '') => `<td class="px-2 py-1 ${c}">${t}</td>`;
+                const filas = referidos.map(r => {
+                    const n = EntradasLogica.resumenReferido(r, tickets);
+                    const link = AdefReferido.link(r.codigo);
+                    const pct = r.porcentaje === null || r.porcentaje === undefined ? '<span class="text-amber-600">A definir</span>' : esc(r.porcentaje) + '%';
+                    const cod = esc(r.codigo);
+                    return `<tr class="border-t border-slate-100 ${refAbierto === r.codigo ? 'bg-indigo-50' : ''}">
+                        ${td(`<button onclick="verReferido('${cod}')" class="font-bold text-indigo-700 hover:underline text-left">${esc(r.nombre)}</button>`)}
+                        ${td(`<span class="font-mono">${cod}</span>`)}
+                        ${td(`<div class="flex items-center gap-1"><input readonly value="${esc(link)}" class="border border-slate-200 rounded px-1 py-0.5 text-[10px] font-mono w-44" onclick="this.select()"><button onclick="copiarLinkReferido('${cod}')" class="text-xs bg-slate-100 hover:bg-slate-200 rounded px-2 py-0.5">Copiar</button></div>`)}
+                        ${td(`<input type="checkbox" ${r.activo ? 'checked' : ''} onchange="activarReferido('${cod}', this.checked)" title="Activo">`)}
+                        ${td(pct)}
+                        ${td(esc(n.pedidos), 'text-right')}${td(esc(n.entradas), 'text-right')}
+                        ${td(pesosRef(n.aprobado), 'text-right font-mono')}${td(pesosRef(n.pendiente), 'text-right font-mono text-amber-700')}
+                        ${td(pesosRef(n.generado), 'text-right font-mono')}${td(pesosRef(n.pagado), 'text-right font-mono')}
+                        ${td(pesosRef(n.aPagar), 'text-right font-mono font-bold')}
+                        ${td(`<div class="flex gap-1 justify-end">
+                            <button onclick="pagoReferido('${cod}')" class="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded px-2 py-0.5 whitespace-nowrap">Registrar pago</button>
+                            <button onclick="editarReferido('${cod}')" class="text-indigo-500 hover:text-indigo-700 p-1" title="Editar"><i data-lucide="pencil" width="14"></i></button>
+                            <button onclick="borrarReferido('${cod}')" class="text-red-400 hover:text-red-600 p-1" title="Borrar"><i data-lucide="trash-2" width="14"></i></button>
+                        </div>`)}
+                    </tr>`;
+                }).join('');
+                cont.innerHTML = `<table class="w-full text-xs"><thead><tr>${th('Nombre')}${th('Código')}${th('Link')}${th('Activo')}${th('%')}${th('Pedidos', 'text-right')}${th('Entradas', 'text-right')}${th('Total aprobado', 'text-right')}${th('Pendientes', 'text-right')}${th('Generado', 'text-right')}${th('Pagado', 'text-right')}${th('A pagar', 'text-right')}${th('')}</tr></thead><tbody>${filas}</tbody></table>
+                    <p class="text-[10px] text-slate-500 mt-2">Pedidos, entradas y total cuentan solo compras aprobadas. Generado = total aprobado × %; A pagar = generado − pagado. Tocá un nombre para ver sus ventas.</p>`;
+            }
+            renderDetalleReferido();
+            lucide.createIcons();
+        }
+
+        function renderDetalleReferido() {
+            const cont = document.getElementById('detalleReferido');
+            const r = referidos.find(x => x.codigo === refAbierto);
+            if (!r) { cont.innerHTML = ''; return; }
+            const grupos = new Map();
+            tickets.filter(t => t.referido === r.codigo).forEach(t => {
+                const k = String(t.pedido ?? t.id);
+                if (!grupos.has(k)) grupos.set(k, []);
+                grupos.get(k).push(t);
+            });
+            const pedidos = [...grupos.values()].sort((a, b) => fechaVenta(b[0]) - fechaVenta(a[0]));
+            const colores = { pendiente: 'bg-amber-100 text-amber-800', aprobada: 'bg-emerald-100 text-emerald-800', rechazada: 'bg-red-100 text-red-700' };
+            const filas = pedidos.map(fs => {
+                fs.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+                const v = fs[0];
+                const total = fs.reduce((s, f) => s + (Number(f.price) || 0), 0);
+                const estados = [...new Set(fs.map(f => f.estado || 'aprobada'))];
+                const estado = estados.length === 1 ? estados[0] : 'mixto';
+                const lineas = fs.map(f => `<div>${esc(f.quantity)} × ${esc(f.categoryName)} — ${pesosRef(Number(f.price) || 0)}</div>`).join('');
+                return `<tr class="border-t border-slate-100 align-top">
+                    <td class="px-2 py-1 whitespace-nowrap">${esc(new Date(fechaVenta(v)).toLocaleDateString('es-AR'))}</td>
+                    <td class="px-2 py-1"><b>${esc(v.attendee)}</b>${v.origen === 'web' ? ' <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1 rounded">WEB</span>' : ''}<div class="text-slate-500">${esc(v.duration)} · ${esc(v.eventName)} ${esc(v.dateText)}</div></td>
+                    <td class="px-2 py-1">${lineas}</td>
+                    <td class="px-2 py-1 text-right font-mono">${pesosRef(total)}</td>
+                    <td class="px-2 py-1"><span class="text-[10px] px-1 rounded ${colores[estado] || 'bg-slate-200 text-slate-700'}">${esc(estado)}</span></td>
+                </tr>`;
+            }).join('');
+            const pagos = (r.pagos || []).map(p => `<li>${esc(new Date(p.fecha).toLocaleDateString('es-AR'))}: ${pesosRef(p.monto)}</li>`).join('');
+            cont.innerHTML = `<div class="card overflow-x-auto">
+                <div class="card-header justify-between"><span>Ventas de ${esc(r.nombre)} (${pedidos.length} ${pedidos.length === 1 ? 'pedido' : 'pedidos'})</span>
+                    <button onclick="verReferido(null)" class="text-xs text-slate-500 hover:underline font-normal">Cerrar</button></div>
+                ${pedidos.length ? `<table class="w-full text-xs"><thead><tr class="text-[10px] uppercase text-slate-500 text-left"><th class="px-2">Fecha</th><th class="px-2">Comprador · concierto</th><th class="px-2">Categoría y cantidad</th><th class="px-2 text-right">Monto</th><th class="px-2">Estado</th></tr></thead><tbody>${filas}</tbody></table>`
+                    : '<p class="text-sm text-slate-500">Todavía no tiene ventas.</p>'}
+                <div class="mt-3 text-xs"><b>Pagos registrados:</b> ${pagos ? `<ul class="list-disc pl-4">${pagos}</ul>` : 'ninguno'}</div>
+            </div>`;
+        }
+
+        window.verReferido = function(cod) { refAbierto = cod; renderReferidos(); }
+
+        window.sugerirCodigoRef = function() {
+            if (editandoRef) return;
+            const c = document.getElementById('refCodigo');
+            if (c.value && c.value !== codigoSugerido) return; // ya lo escribió a mano
+            codigoSugerido = EntradasLogica.slug(document.getElementById('refNombre').value).slice(0, 30);
+            c.value = codigoSugerido;
+        }
+
+        window.limpiarFormReferido = function() {
+            editandoRef = null; codigoSugerido = '';
+            for (const id of ['refNombre', 'refCodigo', 'refPorcentaje']) document.getElementById(id).value = '';
+            document.getElementById('refCodigo').disabled = false;
+            document.getElementById('refActivo').checked = true;
+            document.getElementById('refFormTitulo').textContent = 'Nuevo referido';
+            document.getElementById('refBtnGuardar').textContent = 'Agregar referido';
+            document.getElementById('refBtnCancelar').classList.add('hidden');
+        }
+
+        window.editarReferido = function(cod) {
+            const r = referidos.find(x => x.codigo === cod);
+            if (!r) return;
+            editandoRef = cod;
+            document.getElementById('refNombre').value = r.nombre;
+            document.getElementById('refCodigo').value = r.codigo;
+            document.getElementById('refCodigo').disabled = true;
+            document.getElementById('refPorcentaje').value = r.porcentaje ?? '';
+            document.getElementById('refActivo').checked = r.activo;
+            document.getElementById('refFormTitulo').textContent = 'Editar referido';
+            document.getElementById('refBtnGuardar').textContent = 'Guardar cambios';
+            document.getElementById('refBtnCancelar').classList.remove('hidden');
+            document.getElementById('view-referidos').scrollTop = 0;
+        }
+
+        function ponerReferido(r) {
+            referidos = referidos.filter(x => x.codigo !== r.codigo).concat(r).sort((a, b) => a.codigo.localeCompare(b.codigo));
+            renderReferidos();
+        }
+
+        window.guardarReferido = async function() {
+            const nombre = document.getElementById('refNombre').value.trim();
+            const codigo = editandoRef || EntradasLogica.slug(document.getElementById('refCodigo').value).slice(0, 30);
+            if (!nombre) return showToast('Falta el nombre');
+            if (codigo.length < 2) return showToast('El código tiene que tener al menos 2 letras o números');
+            if (!editandoRef && referidos.some(r => r.codigo === codigo)) return alert('Ya hay un referido con el código "' + codigo + '".');
+            const pctTxt = document.getElementById('refPorcentaje').value.trim();
+            const cuerpo = { nombre, activo: document.getElementById('refActivo').checked, porcentaje: pctTxt === '' ? null : Number(pctTxt) };
+            try {
+                const { referido } = await api('PUT', '/api/admin/referidos/' + encodeURIComponent(codigo), cuerpo);
+                ponerReferido(referido);
+            } catch (e) { return alert(e.message); }
+            limpiarFormReferido();
+            showToast('Referido guardado');
+        }
+
+        window.activarReferido = async function(cod, activo) {
+            const r = referidos.find(x => x.codigo === cod);
+            if (!r) return;
+            try {
+                const { referido } = await api('PUT', '/api/admin/referidos/' + encodeURIComponent(cod), { nombre: r.nombre, porcentaje: r.porcentaje ?? null, activo });
+                ponerReferido(referido);
+                showToast(activo ? 'Referido activado' : 'Referido desactivado: su link deja de sumar ventas');
+            } catch (e) { alert(e.message); renderReferidos(); }
+        }
+
+        window.pagoReferido = async function(cod) {
+            const r = referidos.find(x => x.codigo === cod);
+            if (!r) return;
+            const n = EntradasLogica.resumenReferido(r, tickets);
+            const texto = prompt(`Registrar un pago a ${r.nombre}` + (n.aPagar !== null ? ` (a pagar: ${pesosRef(n.aPagar)})` : '') + '.\nMonto en pesos:', n.aPagar > 0 ? String(n.aPagar) : '');
+            if (texto === null || texto.trim() === '') return;
+            const monto = texto.trim().replace(/^\$\s*/, '').replace(/\.(?=\d{3}(\D|$))/g, ''); // "1.500" = mil quinientos
+            try {
+                const { referido } = await api('POST', '/api/admin/referidos/' + encodeURIComponent(cod) + '/pagos', { monto });
+                ponerReferido(referido);
+                showToast('Pago registrado');
+            } catch (e) { alert(e.message); }
+        }
+
+        window.borrarReferido = async function(cod) {
+            if (!confirm('¿Borrar este referido? Solo se puede si no tiene ventas.')) return;
+            try {
+                await api('DELETE', '/api/admin/referidos/' + encodeURIComponent(cod));
+                referidos = referidos.filter(x => x.codigo !== cod);
+                if (refAbierto === cod) refAbierto = null;
+                renderReferidos();
+                showToast('Referido borrado');
+            } catch (e) { alert(e.message); }
+        }
+
+        window.copiarLinkReferido = function(cod) {
+            const link = AdefReferido.link(cod);
+            const fallback = () => prompt('Copiá el link:', link);
+            if (!navigator.clipboard) return fallback();
+            navigator.clipboard.writeText(link).then(() => showToast('Link copiado'), fallback);
+        }
+
         // --- BRIDGE & PRINTING ---
         window.loadTicketForPrinting = function(ticketId) {
             const ticket = tickets.find(t => String(t.id) === String(ticketId));
@@ -1454,6 +1688,36 @@
             el.style.fontFamily = conf.font || 'Inter';
             el.style.fontWeight = conf.bold ? 'bold' : 'normal';
             el.style.fontStyle = conf.italic ? 'italic' : 'normal';
+            // Alineación: x es el punto de anclaje (borde izquierdo, centro o borde derecho del texto).
+            // El campo no tiene ancho fijo: se corre con translateX, así al cambiar el dato (nombre más
+            // largo) el texto crece desde el ancla. Sin `align` = izquierda (diseños viejos).
+            const a = alineacion(conf);
+            el.style.textAlign = a;
+            el.style.transform = a === 'right' ? 'translateX(-100%)' : a === 'center' ? 'translateX(-50%)' : '';
+        }
+        const alineacion = (conf) => (conf.align === 'right' || conf.align === 'center') ? conf.align : 'left';
+        const FACTOR_ALINEACION = { left: 0, center: 0.5, right: 1 };
+        function marcarAlineacion(conf) {
+            document.getElementById('fieldAlignBox').classList.toggle('hidden', conf.type === 'qr');
+            document.querySelectorAll('#fieldAlignBox .align-btn').forEach(b => {
+                const activa = b.dataset.align === alineacion(conf);
+                b.classList.toggle('bg-indigo-600', activa);
+                b.classList.toggle('bg-slate-700', !activa);
+            });
+        }
+        // Cambia la alineación sin mover el texto en pantalla: corre el ancla x al nuevo borde.
+        window.setFieldAlign = function(a) {
+            if (!activeFieldId) return;
+            const el = fieldElements[activeFieldId];
+            const conf = JSON.parse(el.dataset.config);
+            if (conf.type === 'qr') return;
+            const ancho = el.offsetWidth; // sin transform ni zoom del lienzo
+            conf.x = Math.round((Number(conf.x) || 0) + ancho * (FACTOR_ALINEACION[a] - FACTOR_ALINEACION[alineacion(conf)]));
+            conf.align = a;
+            el.style.left = conf.x + 'px';
+            el.dataset.config = JSON.stringify(conf);
+            applyStyles(el, conf);
+            marcarAlineacion(conf);
         }
 
         window.selectField = function(id) {
@@ -1470,6 +1734,7 @@
             document.getElementById('fieldSize').value = conf.size || 16;
             document.getElementById('fieldColor').value = conf.color || '#000000';
             document.getElementById('fieldFont').value = conf.font || 'Inter';
+            marcarAlineacion(conf);
 
             const mapSelect = document.getElementById('fieldIdMapper');
             if(id.includes('f_name')) mapSelect.value = 'f_name';

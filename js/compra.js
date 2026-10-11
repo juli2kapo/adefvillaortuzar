@@ -229,6 +229,9 @@
     paso.then(function () {
       boton.textContent = "Enviando…";
       c.turnstile = tokenTs;
+      /* Referido de la cookie (js/referido.js); el Worker lo valida y si no sirve lo ignora. */
+      var ref = window.AdefReferido ? window.AdefReferido.leer(document.cookie) : null;
+      if (ref) c.referido = ref;
       return fetch(API + "/api/compras", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(c) });
     }).then(function (res) {
       if (res.ok) return res.json().then(function (r) { listo(r, c); });

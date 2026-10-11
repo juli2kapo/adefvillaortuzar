@@ -108,7 +108,26 @@
     if (ev.disponibles <= 0) return "Ese concierto está agotado";
     return "";
   }
-  var api = { calcularPedido: calcularPedido, textoPedido: textoPedido, MAX_CATEGORIAS: MAX_CATEGORIAS, MAX_ENTRADAS: MAX_ENTRADAS, es2x1: es2x1, avisoEvento: avisoEvento, CONCIERTOS_TRIMESTRE: CONCIERTOS_TRIMESTRE, elegiblesTrimestre: elegiblesTrimestre, textoConciertos: textoConciertos, precio: precio, plata: plata, textoTile: textoTile, textoCategoria: textoCategoria, etiqueta: etiqueta, slug: slug, validarFormulario: validarFormulario };
+  /* Panel, pestaña Referidos: números de un referido sobre las filas de ventas (una por categoría).
+     Pedidos/entradas/aprobado cuentan solo aprobadas (las del panel no tienen estado = aprobadas).
+     Con porcentaje null ("a definir") no se calcula comisión: generado y aPagar quedan null. */
+  function resumenReferido(ref, ventas) {
+    var suyas = (ventas || []).filter(function (v) { return v.referido === ref.codigo; });
+    var aprobadas = suyas.filter(function (v) { return (v.estado || "aprobada") === "aprobada"; });
+    var suma = function (lista, k) { return lista.reduce(function (s, v) { return s + (Number(v[k]) || 0); }, 0); };
+    var pedidos = {};
+    aprobadas.forEach(function (v) { pedidos[String(v.pedido != null ? v.pedido : v.id)] = true; });
+    var aprobado = suma(aprobadas, "price");
+    var pagado = suma(ref.pagos || [], "monto");
+    var pct = ref.porcentaje;
+    var generado = pct === null || pct === undefined || pct === "" ? null : Math.round(aprobado * Number(pct) / 100);
+    return {
+      pedidos: Object.keys(pedidos).length, entradas: suma(aprobadas, "quantity"), aprobado: aprobado,
+      pendiente: suma(suyas.filter(function (v) { return v.estado === "pendiente"; }), "price"),
+      generado: generado, pagado: pagado, aPagar: generado === null ? null : generado - pagado,
+    };
+  }
+  var api = { resumenReferido: resumenReferido, calcularPedido: calcularPedido, textoPedido: textoPedido, MAX_CATEGORIAS: MAX_CATEGORIAS, MAX_ENTRADAS: MAX_ENTRADAS, es2x1: es2x1, avisoEvento: avisoEvento, CONCIERTOS_TRIMESTRE: CONCIERTOS_TRIMESTRE, elegiblesTrimestre: elegiblesTrimestre, textoConciertos: textoConciertos, precio: precio, plata: plata, textoTile: textoTile, textoCategoria: textoCategoria, etiqueta: etiqueta, slug: slug, validarFormulario: validarFormulario };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else raiz.EntradasLogica = api;
 })(this);
