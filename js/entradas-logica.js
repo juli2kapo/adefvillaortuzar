@@ -11,7 +11,7 @@
     return "$" + String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   }
   function textoTile(ev) {
-    if (ev.pasado) return "Concierto pasado";
+    if (ev.pasado) return (ev.descripcion ? ev.descripcion + " · " : "") + "Concierto pasado";
     return ev.fecha + (ev.hora ? " " + ev.hora : "") + (ev.descripcion ? " · " + ev.descripcion : "");
   }
   function etiqueta(ev) {
