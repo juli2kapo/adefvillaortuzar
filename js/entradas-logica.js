@@ -127,7 +127,39 @@
       generado: generado, pagado: pagado, aPagar: generado === null ? null : generado - pagado,
     };
   }
-  var api = { resumenReferido: resumenReferido, calcularPedido: calcularPedido, textoPedido: textoPedido, MAX_CATEGORIAS: MAX_CATEGORIAS, MAX_ENTRADAS: MAX_ENTRADAS, es2x1: es2x1, avisoEvento: avisoEvento, CONCIERTOS_TRIMESTRE: CONCIERTOS_TRIMESTRE, elegiblesTrimestre: elegiblesTrimestre, textoConciertos: textoConciertos, precio: precio, plata: plata, textoTile: textoTile, textoCategoria: textoCategoria, etiqueta: etiqueta, slug: slug, validarFormulario: validarFormulario };
+  /* Reporte de referidos sobre ventas ya filtradas (aprobadas, y por concierto si corresponde).
+     valorDe(t) = cuánto de esa venta se imputa (por concierto, los abonos van prorrateados); por defecto el precio.
+     Comisión = valor × % / 100; con % "a definir" (null) queda null. */
+  function reporteReferidos(ventas, referidos, valorDe) {
+    valorDe = valorDe || function (t) { return Number(t.price) || 0; };
+    var porCodigo = {}, orden = [], resumen = {};
+    (referidos || []).forEach(function (r) { porCodigo[r.codigo] = r; });
+    var sinPct = function (p) { return p === null || p === undefined || p === ""; };
+    var filas = (ventas || []).filter(function (v) { return v.referido; }).map(function (v) {
+      var ref = porCodigo[v.referido] || { codigo: v.referido, nombre: v.referido, porcentaje: null };
+      var valor = valorDe(v);
+      if (!resumen[ref.codigo]) {
+        orden.push(ref.codigo);
+        resumen[ref.codigo] = { codigo: ref.codigo, nombre: ref.nombre, porcentaje: sinPct(ref.porcentaje) ? null : Number(ref.porcentaje), pedidos: {}, entradas: 0, total: 0 };
+      }
+      var s = resumen[ref.codigo];
+      s.pedidos[String(v.pedido != null ? v.pedido : v.id)] = true;
+      s.entradas += Number(v.quantity) || 0;
+      s.total += valor;
+      return { venta: v, codigo: ref.codigo, nombre: ref.nombre, porcentaje: s.porcentaje, valor: valor,
+        comision: s.porcentaje === null ? null : Math.round(valor * s.porcentaje / 100) };
+    });
+    var lista = orden.map(function (c) {
+      var s = resumen[c];
+      return { codigo: s.codigo, nombre: s.nombre, porcentaje: s.porcentaje, pedidos: Object.keys(s.pedidos).length, entradas: s.entradas,
+        total: Math.round(s.total), comision: s.porcentaje === null ? null : Math.round(s.total * s.porcentaje / 100) };
+    });
+    var totales = lista.reduce(function (t, s) {
+      return { pedidos: t.pedidos + s.pedidos, entradas: t.entradas + s.entradas, total: t.total + s.total, comision: t.comision + (s.comision || 0) };
+    }, { pedidos: 0, entradas: 0, total: 0, comision: 0 });
+    return { filas: filas, resumen: lista, totales: totales };
+  }
+  var api = { reporteReferidos: reporteReferidos, resumenReferido: resumenReferido, calcularPedido: calcularPedido, textoPedido: textoPedido, MAX_CATEGORIAS: MAX_CATEGORIAS, MAX_ENTRADAS: MAX_ENTRADAS, es2x1: es2x1, avisoEvento: avisoEvento, CONCIERTOS_TRIMESTRE: CONCIERTOS_TRIMESTRE, elegiblesTrimestre: elegiblesTrimestre, textoConciertos: textoConciertos, precio: precio, plata: plata, textoTile: textoTile, textoCategoria: textoCategoria, etiqueta: etiqueta, slug: slug, validarFormulario: validarFormulario };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else raiz.EntradasLogica = api;
 })(this);
