@@ -556,18 +556,47 @@
         let templates = JSON.parse(JSON.stringify(defaultTemplates));
 
         // --- DATA LOADERS ---
-        async function loadAllData() {
-            const d = await api("GET", "/api/admin/datos");
-            if (d.config) config = d.config;
-            events = d.eventos;
-            tickets = d.ventas;
-            ocupacion = d.ocupacion || {};
-            Object.assign(templates, d.plantillas || {});
+        /* Nunca hay dos pedidos a /datos a la vez: si piden recargar mientras hay uno en curso,
+           se hace una vuelta más al terminar (para no quedarse con datos de antes de un cambio). */
+        let cargaEnCurso = null, recargarOtraVez = false;
+        function loadAllData() {
+            if (cargaEnCurso) { recargarOtraVez = true; return cargaEnCurso; }
+            cargaEnCurso = (async () => {
+                do {
+                    recargarOtraVez = false;
+                    const d = await api("GET", "/api/admin/datos");
+                    if (d.config) config = d.config;
+                    events = d.eventos;
+                    tickets = d.ventas;
+                    ocupacion = d.ocupacion || {};
+                    Object.assign(templates, d.plantillas || {});
+                    repintarTodo();
+                } while (recargarOtraVez);
+            })().finally(() => { cargaEnCurso = null; });
+            return cargaEnCurso;
+        }
+
+        // Todas las vistas que dependen de tickets/events/ocupación, no solo la visible.
+        function repintarTodo() {
             renderEvents();
             renderSales();
+            filterTicketList();
             updateReports();
             renderComprasWeb();
         }
+
+        /* Refresco automático (Compras web visible cada 60 s y al volver a la ventana): se saltea si
+           ya hay una carga, si se están generando entradas o si hay un campo con foco (no pisar lo que
+           se está escribiendo). */
+        function refrescoAutomatico() {
+            if (!CLAVE || cargaEnCurso || generandoEntradas || document.hidden) return;
+            const a = document.activeElement;
+            if (a && (a.matches('input, textarea, select') || a.isContentEditable)) return;
+            loadAllData().catch(e => console.warn('No se pudo refrescar', e));
+        }
+        const vistaActiva = (id) => document.getElementById('view-' + id)?.classList.contains('active');
+        setInterval(() => { if (vistaActiva('compras')) refrescoAutomatico(); }, 60000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) refrescoAutomatico(); });
 
         // --- GLOBAL UI HELPERS ---
         let currentMode = 'Suelta';
@@ -584,6 +613,10 @@
             if (tabId === 'designer') {
                 if (!printTicketData) switchTemplate(currentMode);
                 setTimeout(fitCanvasToScreen, 100);
+            }
+            // Al entrar a una vista con datos, traerlos de nuevo (ventas borradas, compras web nuevas…).
+            if (['sales', 'compras', 'events', 'reports'].includes(tabId) && CLAVE && !generandoEntradas) {
+                loadAllData().catch(e => console.warn('No se pudo refrescar', e));
             }
         }
 
@@ -784,7 +817,8 @@
             const sel = document.getElementById('saleEventSelect');
             const exportSel = document.getElementById('exportFilterEvent');
 
-            list.innerHTML = ""; 
+            const elegido = sel.value, elegidoExport = exportSel.value; // no perder la selección al repintar
+            list.innerHTML = "";
             sel.innerHTML = '<option value="">Seleccionar...</option>';
             exportSel.innerHTML = '<option value="ALL">Todo el Historial</option>';
 
@@ -807,6 +841,8 @@
                 sel.innerHTML += `<option value="${esc(e.id)}">${esc(e.name)} (${dateStr})</option>`;
                 exportSel.innerHTML += `<option value="${esc(e.id)}">${esc(e.name)} (${esc(e.type || 'Ciclo')})</option>`;
             });
+            if ([...sel.options].some(o => o.value === elegido)) sel.value = elegido;
+            if ([...exportSel.options].some(o => o.value === elegidoExport)) exportSel.value = elegidoExport;
             renderTrimestreGrid();
             lucide.createIcons();
         }
@@ -891,23 +927,32 @@
             
             document.getElementById('attendeeName').value = "";
             document.getElementById('attendeeCuit').value = "";
-            renderSales();
-            updateReports();
+            repintarTodo();
             showToast("Venta Registrada en DB");
         }
 
+        /* Si la fila es parte de una compra web de varias filas, ofrece borrar el pedido entero
+           (todas sus filas, con el DELETE por fila). Después recarga todo (ocupación, compras web…). */
         window.deleteTicket = async function(id) {
-            if(!confirm("¿Eliminar esta venta definitivamente?")) return;
+            const fila = tickets.find(t => String(t.id) === String(id));
+            const pedido = fila && fila.origen === 'web' ? pedidosWeb().find(p => p.filas.some(f => String(f.id) === String(id))) : null;
+            let ids = [String(id)];
+            if (pedido && pedido.filas.length > 1) {
+                const detalle = pedido.filas.map(f => `• ${f.quantity} × ${f.categoryName}`).join('\n');
+                if (confirm(`Esta venta es parte de una compra web de ${pedido.filas.length} filas (${fila.attendee}):\n${detalle}\n\n¿Borrar el pedido ENTERO (todas sus filas)?\n\nAceptar: borra todo el pedido. Cancelar: te pregunta si borrar solo esta fila.`)) {
+                    ids = pedido.filas.map(f => String(f.id));
+                } else if (!confirm("¿Borrar solo esta fila (" + fila.quantity + " × " + fila.categoryName + ")? El resto del pedido queda.")) return;
+            } else if (!confirm("¿Eliminar esta venta definitivamente?")) return;
+            const borradas = [];
             try {
-                await api("DELETE", "/api/admin/ventas/" + id);
-                tickets = tickets.filter(t => t.id !== id.toString());
-                renderComprasWeb();
-                renderSales(); // Updates recent list
-                filterTicketList(); // Updates full list if open
-                updateReports();
-                showToast("Entrada eliminada");
+                for (const x of ids) { await api("DELETE", "/api/admin/ventas/" + encodeURIComponent(x)); borradas.push(x); }
+                showToast(ids.length > 1 ? "Pedido eliminado" : "Entrada eliminada");
             } catch(e) {
                 alert("Error: " + e.message);
+            } finally {
+                tickets = tickets.filter(t => !borradas.includes(String(t.id)));
+                repintarTodo();
+                loadAllData().catch(e => console.warn('No se pudo refrescar', e));
             }
         }
 
@@ -1035,7 +1080,7 @@
         function reemplazarVentas(vs) {
             const ids = new Set(vs.map(v => String(v.id)));
             tickets = tickets.filter(t => !ids.has(String(t.id))).concat(vs);
-            renderComprasWeb(); renderSales(); updateReports();
+            repintarTodo();
         }
 
         /* Entradas con el diseño: una imagen por fila del pedido (por categoría), dibujada con la
