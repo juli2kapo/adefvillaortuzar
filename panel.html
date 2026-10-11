@@ -67,6 +67,11 @@
         #ticketCanvas { background-color: white; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); transform-origin: center center; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); flex-shrink: 0; }
         .ticket-field { position: absolute; z-index: 10; cursor: move; border: 1px dashed rgba(0,0,0,0.1); padding: 4px; white-space: nowrap; user-select: none; line-height: 1.2; }
         .ticket-field:hover { border: 1px solid #38bdf8; background: rgba(56, 189, 248, 0.1); }
+        #ticketCanvas.capturando .ticket-field { border-color: transparent !important; background: none !important; box-shadow: none !important; }
+        /* html2canvas mide la línea base de cada fuente con un <img> dentro de un div oculto que agrega al body;
+           el preflight de Tailwind (img { display:block; vertical-align:middle }) le arruina la medida y los
+           textos salen ~5px más abajo en el PNG. Con esto el PNG queda igual que el diseñador. */
+        body > div[style*="visibility: hidden"] img { display: inline !important; vertical-align: baseline !important; }
         .ticket-field.selected { border: 2px solid #38bdf8; z-index: 100; box-shadow: 0 0 10px rgba(56,189,248,0.3); }
         .qr-placeholder { display: flex; align-items: center; justify-content: center; pointer-events: none; }
         .qr-placeholder img { display: block; }
@@ -1033,12 +1038,104 @@
             renderComprasWeb(); renderSales(); updateReports();
         }
 
+        /* Entradas con el diseño: una imagen por fila del pedido (por categoría), dibujada con la
+           plantilla de su tipo igual que al imprimir (switchTemplate + injectDataIntoCanvas, QR con el
+           texto de siempre), pasada a PNG con html2canvas y subida a UploadThing. Devuelve
+           { entradas: [{ id, url }], fallo }. Si una falla, esa fila va con el QR simple del Worker y
+           avisamos. Deja el diseñador como estaba (incluidos cambios sin guardar). */
+        const slugArchivo = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+        async function imagenCargada(img) {
+            if (!img.getAttribute('src') || img.complete) return;
+            await new Promise(r => { img.addEventListener('load', r, { once: true }); img.addEventListener('error', r, { once: true }); });
+        }
+        async function capturarEntrada(fila) {
+            printTicketData = fila;
+            switchTemplate(fila.duration);
+            await esperar(120); // deja correr los setTimeout de switchTemplate/createFieldOnCanvas (QR por defecto)
+            injectDataIntoCanvas(fila);
+            await imagenCargada(document.getElementById('ticketBgImage'));
+            // Que estén cargadas las fuentes del diseño antes de dibujar (si no, sale la de respaldo).
+            await Promise.all(Object.values(fieldElements).map(el => {
+                const c = JSON.parse(el.dataset.config);
+                return c.type === 'qr' ? null : document.fonts.load(`${c.bold ? 'bold ' : ''}${c.size || 16}px "${c.font || 'Inter'}"`).catch(() => null);
+            }));
+            await document.fonts.ready;
+            await esperar(50);
+            const el = document.getElementById('ticketCanvas');
+            el.style.transform = 'none';
+            el.classList.add('capturando');
+            try {
+                const canvas = await html2canvas(el, { useCORS: true, scale: 2 });
+                return await new Promise((ok, mal) => canvas.toBlob(b => b ? ok(b) : mal(new Error('PNG vacío')), 'image/png'));
+            } finally {
+                el.classList.remove('capturando');
+            }
+        }
+        async function generarEntradas(filas) {
+            const entradas = [];
+            let fallo = false;
+            const vista = document.getElementById('view-designer');
+            const lienzo = document.getElementById('ticketCanvas');
+            const estado = {
+                modo: currentMode, print: printTicketData, cssVista: vista.style.cssText, transform: lienzo.style.transform,
+                diseño: {
+                    width: parseInt(document.getElementById('canvasWidth').value), height: parseInt(document.getElementById('canvasHeight').value),
+                    bg: document.getElementById('ticketBgImage').getAttribute('src') || null,
+                    fields: Object.values(fieldElements).map(el => JSON.parse(el.dataset.config)),
+                },
+            };
+            // html2canvas necesita la vista en el layout: si está oculta la mostramos fuera de pantalla.
+            if (!vista.classList.contains('active')) vista.style.cssText += ';display:block;position:fixed;left:-20000px;top:0;width:3000px;height:3000px;';
+            try {
+                for (const f of filas) {
+                    try {
+                        if (!templates[f.duration] || !Array.isArray(templates[f.duration].fields)) throw new Error('sin plantilla ' + f.duration);
+                        const blob = await capturarEntrada(f);
+                        const nombre = `entrada-${[slugArchivo(f.attendee), slugArchivo(f.categoryName)].filter(Boolean).join('-')}.png`;
+                        const [r] = await window.UT.uploadFiles('imagen', { files: [new File([blob], nombre, { type: 'image/png' })], headers: { 'x-clave': CLAVE } });
+                        const url = r && (r.ufsUrl || r.url);
+                        if (!url) throw new Error('subida sin URL');
+                        entradas.push({ id: f.id, url });
+                    } catch (e) {
+                        console.error('No se pudo generar la entrada con diseño', f.id, e);
+                        fallo = true;
+                    }
+                }
+            } finally {
+                // Restaurar el diseñador tal cual (cambios sin guardar incluidos).
+                const guardada = templates[estado.modo];
+                templates[estado.modo] = estado.diseño;
+                printTicketData = estado.print;
+                switchTemplate(estado.modo);
+                templates[estado.modo] = guardada;
+                vista.style.cssText = estado.cssVista;
+                lienzo.style.transform = estado.transform;
+                deselectAllFields();
+                setTimeout(fitCanvasToScreen, 60);
+            }
+            return { entradas, fallo };
+        }
+        let generandoEntradas = false;
+        async function enviarConEntradas(id, accion) {
+            if (generandoEntradas) throw new Error("Esperá: todavía se están generando otras entradas.");
+            const p = pedidosWeb().find(x => x.id === String(id));
+            generandoEntradas = true;
+            showToast("Generando las entradas con el diseño…");
+            let gen = { entradas: [], fallo: true };
+            try { if (p) gen = await generarEntradas(p.filas); } catch (e) { console.error(e); }
+            finally { generandoEntradas = false; }
+            const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/${accion}`, gen.entradas.length ? { entradas: gen.entradas } : undefined);
+            return { r, simple: gen.fallo };
+        }
+        const AVISO_SIMPLE = "Se mandó la entrada simple (no se pudo generar el diseño)";
+
         window.aprobarCompra = async function(id) {
             if (!confirm("¿Confirmás que el pago está acreditado? Se manda la entrada por mail.")) return;
             try {
-                const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/aprobar`);
+                const { r, simple } = await enviarConEntradas(id, 'aprobar');
                 reemplazarVentas(r.ventas);
-                showToast(r.mail ? "Aprobada. Entrada enviada por mail." : "Aprobada, pero el mail falló: usá Reenviar.");
+                showToast(!r.mail ? "Aprobada, pero el mail falló: usá Reenviar." : simple ? AVISO_SIMPLE : "Aprobada. Entrada enviada por mail.");
             } catch (e) { alert(e.message); await loadAllData(); }
         }
 
@@ -1046,10 +1143,10 @@
         window.aprobarRechazada = async function(id) {
             if (!confirm("Esta compra está RECHAZADA. ¿Aprobarla igual?\n\nSolo se puede si todavía hay lugar. Se le manda la entrada con QR por mail al comprador.")) return;
             try {
-                const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/aprobar`);
+                const { r, simple } = await enviarConEntradas(id, 'aprobar');
                 reemplazarVentas(r.ventas);
                 await loadAllData();
-                showToast(r.mail ? "Aprobada. Entrada enviada por mail." : "Aprobada, pero el mail falló: usá Reenviar.");
+                showToast(!r.mail ? "Aprobada, pero el mail falló: usá Reenviar." : simple ? AVISO_SIMPLE : "Aprobada. Entrada enviada por mail.");
             } catch (e) { alert(e.message); await loadAllData(); }
         }
 
@@ -1066,9 +1163,11 @@
 
         window.reenviarCompra = async function(id) {
             try {
-                const r = await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/reenviar`);
+                const p = pedidosWeb().find(x => x.id === String(id));
+                const { r, simple } = p && p.estado === 'aprobada' ? await enviarConEntradas(id, 'reenviar')
+                    : { r: await api("POST", `/api/admin/compras/${encodeURIComponent(id)}/reenviar`), simple: false };
                 reemplazarVentas(r.ventas);
-                showToast(r.mail ? "Mail reenviado." : "El mail volvió a fallar.");
+                showToast(!r.mail ? "El mail volvió a fallar." : simple ? AVISO_SIMPLE : "Mail reenviado.");
             } catch (e) { alert(e.message); }
         }
 
