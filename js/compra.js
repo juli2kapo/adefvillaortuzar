@@ -234,7 +234,7 @@
       if (ref) c.referido = ref;
       return fetch(API + "/api/compras", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(c) });
     }).then(function (res) {
-      if (res.ok) return res.json().then(function (r) { listo(r, c); });
+      if (res.ok) return res.json().then(function (r) { olvidarReferido(); listo(r, c); });
       return res.text().then(function (msg) {
         reiniciarTurnstile();
         error(msg || "No pudimos registrar tu compra. Probá de nuevo.");
@@ -247,6 +247,15 @@
       boton.disabled = false;
       boton.textContent = "Enviar compra";
     });
+  }
+
+  /* La compra ya quedó atribuida: sin cookie, una próxima visita sin link no es del referido.
+     Si vuelve a entrar por un link de referido, se vuelve a guardar. */
+  function olvidarReferido() {
+    if (!window.AdefReferido) return;
+    try {
+      window.AdefReferido.olvidar(location.protocol === "https:").forEach(function (k) { document.cookie = k; });
+    } catch (e) { /* sin cookies: nada que borrar */ }
   }
 
   function listo(r, c) {

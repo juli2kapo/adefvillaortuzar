@@ -33,6 +33,11 @@
     var fin = "; max-age=" + MAX_AGE + "; path=/; SameSite=Lax" + (seguro ? "; Secure" : "");
     return [NOMBRE + "=" + codigo + fin, ALTA + "=" + encodeURIComponent(ahora.toISOString()) + fin];
   }
+  /* Después de una compra: la cookie se borra, así una visita posterior sin link no se le atribuye al referido. */
+  function olvidar(seguro) {
+    var fin = "=; max-age=0; path=/; SameSite=Lax" + (seguro ? "; Secure" : "");
+    return [NOMBRE + fin, ALTA + fin];
+  }
   /* La URL actual sin el parámetro r (ruta + query + hash), para history.replaceState. */
   function sinParametro(href) {
     var u = new URL(href);
@@ -55,7 +60,7 @@
     return u.href;
   }
 
-  var api = { codificar: codificar, decodificar: decodificar, leer: leer, aGuardar: aGuardar, cookies: cookies, sinParametro: sinParametro, link: link, linkA: linkA, LINK_BASE: LINK_BASE };
+  var api = { codificar: codificar, decodificar: decodificar, leer: leer, aGuardar: aGuardar, cookies: cookies, olvidar: olvidar, sinParametro: sinParametro, link: link, linkA: linkA, LINK_BASE: LINK_BASE };
   if (typeof module !== "undefined" && module.exports) { module.exports = api; return; }
   raiz.AdefReferido = api;
 
