@@ -1078,7 +1078,13 @@ a   { color: inherit; }
 .transferencia { background: #f7f1f1; border-radius: 8px; padding: 12px 14px; margin: 16px 0 0; font-size: .9rem; }
 .transferencia[hidden] { display: none; }
 .transferencia p { margin: 4px 0; overflow-wrap: anywhere; }
-.copiar { margin-left: 6px; border: 1px solid #812424; color: #812424; background: #fff; border-radius: 6px; font: inherit; font-size: .75rem; padding: 2px 8px; cursor: pointer; }
+.transferencia .dato { margin: 10px 0 0; }
+.transferencia .dato[hidden] { display: none; }
+.dato-label { display: block; font-size: .7rem; letter-spacing: 1px; text-transform: uppercase; color: #8a7d7d; }
+.dato-valor { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dato-valor strong { min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+#tCbu { font-size: .82rem; letter-spacing: -.2px; }
+.copiar { flex: none; margin-left: 6px; border: 1px solid #812424; color: #812424; background: #fff; border-radius: 6px; font: inherit; font-size: .75rem; padding: 2px 8px; cursor: pointer; }
 .copiar:hover { background: #812424; color: #fff; }
 .resumen-efectivo { margin: 16px 0 0; font-size: .9rem; font-weight: 600; color: #812424; }
 
