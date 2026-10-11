@@ -1109,7 +1109,7 @@ a   { color: inherit; }
 .categoria-nombre { font-size: 1rem; font-weight: 500; color: var(--ink); overflow-wrap: anywhere; }
 .categoria-precio { font-size: .88rem; font-weight: 400; color: var(--ink-soft); }
 .contador { flex: none; display: flex; align-items: center; gap: 4px; }
-.contador-btn { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid #812424; border-radius: 50%; background: #fff; color: #812424; font: inherit; font-size: 1.2rem; line-height: 1; cursor: pointer; transition: background .2s, color .2s; }
+.contador-btn { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 1px solid #812424; border-radius: 50%; background: #fff; color: #812424; font: inherit; font-size: 1.2rem; line-height: 1; cursor: pointer; transition: background .2s, color .2s; }
 .contador-btn:hover:not(:disabled) { background: #812424; color: #fff; }
 .contador-btn:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
 .contador-btn:disabled { border-color: #d6d6d6; color: #bbb; cursor: default; }

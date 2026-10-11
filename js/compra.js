@@ -82,7 +82,9 @@
       li.querySelector(".contador-n").textContent = n;
       li.classList.toggle("con-entradas", n > 0);
       li.querySelector('[data-delta="-1"]').disabled = n === 0;
-      li.querySelector('[data-delta="1"]').disabled = p.cantidad + s > L.MAX_ENTRADAS || (n === 0 && usadas >= L.MAX_CATEGORIAS);
+      // Pedido sin cargo: hasta 4 en total (mismo límite que el servidor).
+      var tope = p.total === 0 && unit === 0 ? 4 : L.MAX_ENTRADAS;
+      li.querySelector('[data-delta="1"]').disabled = p.cantidad + s > tope || (n === 0 && usadas >= L.MAX_CATEGORIAS);
     });
   }
 
