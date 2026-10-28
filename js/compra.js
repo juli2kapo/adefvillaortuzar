@@ -68,8 +68,54 @@
     }).join("");
   }
 
+  /* ---------- Código de descuento: se consulta al Worker al aplicarlo; la compra lo vuelve a validar ---------- */
+  var cupon = null;
+
+  function cuponQueAplica() {
+    var tipo = $("cTipo").value;
+    return L.aplicaCodigo(cupon, tipo, tipo === "Suelta" ? $("cEvento").value : "") ? cupon : null;
+  }
+
+  function estadoCodigo(msg, clase) {
+    var el = $("cCodigoEstado");
+    el.textContent = msg;
+    el.className = "codigo-estado" + (clase ? " " + clase : "");
+    el.hidden = !msg;
+  }
+
+  function refrescarCodigo() {
+    if (!cupon) return;
+    var tipo = $("cTipo").value;
+    if (cuponQueAplica()) {
+      estadoCodigo("✓ " + cupon.codigo + ": " + cupon.porcentaje + "% de descuento" +
+        (cupon.maxEntradas ? " en hasta " + cupon.maxEntradas + (cupon.maxEntradas === 1 ? " entrada" : " entradas") : ""), "ok");
+    } else if (tipo !== "Suelta") {
+      estadoCodigo("El código " + cupon.codigo + " vale solo para entradas sueltas.", "mal");
+    } else if (!$("cEvento").value) {
+      estadoCodigo("Elegí el concierto para usar el código " + cupon.codigo + ".", "");
+    } else {
+      estadoCodigo("El código " + cupon.codigo + " no vale para este concierto.", "mal");
+    }
+  }
+
+  function aplicarCodigo() {
+    var escrito = $("cCodigo").value.trim();
+    cupon = null;
+    if (!escrito) { estadoCodigo(""); return actualizar(); }
+    var boton = $("cAplicarCodigo");
+    boton.disabled = true;
+    estadoCodigo("Revisando el código…", "");
+    fetch(API + "/api/codigo", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ codigo: escrito }) })
+      .then(function (res) {
+        if (res.ok) return res.json().then(function (r) { cupon = r; $("cCodigo").value = r.codigo; });
+        estadoCodigo("Ese código no existe o ya no está vigente.", "mal");
+      })
+      .catch(function () { estadoCodigo("No pudimos revisar el código. Revisá tu conexión y probá de nuevo.", "mal"); })
+      .then(function () { boton.disabled = false; actualizar(); });
+  }
+
   function pedido() {
-    return L.calcularPedido(datos.precios, $("cTipo").value, datos.categorias, cantidades);
+    return L.calcularPedido(datos.precios, $("cTipo").value, datos.categorias, cantidades, cuponQueAplica());
   }
 
   /* Actualiza números, precios unitarios y botones de cada categoría sin repintar (no pierde el foco). */
@@ -89,10 +135,11 @@
   }
 
   function leerFormulario() {
-    var tipo = $("cTipo").value;
+    var tipo = $("cTipo").value, cod = cuponQueAplica();
     return {
       tipo: tipo, eventoId: tipo === "Suelta" ? $("cEvento").value : "",
       conciertos: tipo === "Trimestral" ? conciertosElegidos() : undefined,
+      codigo: cod ? cod.codigo : undefined,
       items: pedido().items,
       nombre: $("cNombre").value.trim(), email: $("cEmail").value.trim(),
       telefono: $("cTelefono").value.trim(),
@@ -162,6 +209,13 @@
     var fila = $("filaDescuento");
     if (conDescuento && fila.hidden) { fila.hidden = false; fila.style.animation = "none"; void fila.offsetWidth; fila.style.animation = ""; }
     fila.hidden = !conDescuento;
+    var conCodigo = p.descuentoCodigo > 0;
+    if (conCodigo) {
+      $("cCodigoTexto").textContent = "Código " + cupon.codigo;
+      $("cDescuentoCodigo").textContent = "−" + L.plata(p.descuentoCodigo);
+    }
+    $("filaCodigo").hidden = !conCodigo;
+    refrescarCodigo();
     $("cTotal").textContent = L.plata(t);
     var gratis = t === 0 && p.cantidad > 0;
     $("bloquePago").hidden = gratis;
@@ -274,6 +328,8 @@
     $("compraListo").hidden = false;
     $("compraListo").scrollIntoView({ block: "start" });
     $("compraForm").reset();
+    cupon = null;
+    estadoCodigo("");
     cantidades = cantidadesIniciales();
     actualizar();
     reiniciarTurnstile();
@@ -325,6 +381,17 @@
     var f = $("cArchivo").files[0];
     $("cArchivoNombre").textContent = f ? f.name : "JPG, PNG o PDF, hasta 8 MB";
   });
+  $("cAplicarCodigo").addEventListener("click", aplicarCodigo);
+  /* Enter en el código lo aplica (no envía la compra); si lo cambia después de aplicarlo, deja de valer. */
+  $("cCodigo").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); aplicarCodigo(); }
+  });
+  $("cCodigo").addEventListener("input", function () {
+    if (!cupon || $("cCodigo").value.trim().toUpperCase() === cupon.codigo) return;
+    cupon = null;
+    estadoCodigo("");
+    actualizar();
+  });
   $("compraForm").addEventListener("submit", enviar);
 
   fetch(API + "/api/publico").then(function (r) {
@@ -332,7 +399,10 @@
     return r.json();
   }).then(function (d) {
     datos = d;
-    prepararFormulario(new URLSearchParams(location.search));
+    var params = new URLSearchParams(location.search);
+    prepararFormulario(params);
+    /* Link con el código ya puesto (?codigo=YOGACONCIERTO), para mandar a quien le corresponde. */
+    if (params.get("codigo")) { $("cCodigo").value = params.get("codigo").slice(0, 30); aplicarCodigo(); }
     $("eCargando").hidden = true;
     $("eGrid").hidden = false;
     pintarTurnstile();

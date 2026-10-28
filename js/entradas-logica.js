@@ -49,20 +49,44 @@
     if (total === 0 && suma > 4) return "Para entradas sin cargo podés pedir hasta 4 por vez.";
     return null;
   }
+  /* Código de descuento (lo devuelve /api/codigo): solo entradas sueltas; eventos vacío = todos los conciertos. */
+  function aplicaCodigo(cod, tipo, eventoId) {
+    return !!cod && tipo === "Suelta" && (!cod.eventos || !cod.eventos.length || cod.eventos.map(String).indexOf(String(eventoId)) >= 0);
+  }
+  /* Descuento en $ por línea ({ unitario, cantidad }): el % del código sobre las entradas más caras primero,
+     hasta maxEntradas (null = todas); las sin cargo no gastan el tope. Igual que descuentosCodigo en adef-api. */
+  function descuentosCodigo(lineas, cod) {
+    var out = lineas.map(function () { return 0; });
+    var quedan = cod.maxEntradas == null ? Infinity : Number(cod.maxEntradas);
+    var orden = lineas.map(function (l, i) { return i; }).sort(function (a, b) { return lineas[b].unitario - lineas[a].unitario; });
+    orden.forEach(function (i) {
+      var u = lineas[i].unitario;
+      if (!(u > 0) || quedan <= 0) return;
+      var k = Math.min(lineas[i].cantidad, quedan);
+      out[i] = Math.round(u * k * Number(cod.porcentaje) / 100);
+      quedan -= k;
+    });
+    return out;
+  }
   /* cantidades: { nombreCategoria: n }. Devuelve las líneas del pedido (solo n > 0, en el orden de las categorías),
-     los items para la API, la cantidad total, el precio lleno (subtotal), el descuento y el total. */
-  function calcularPedido(precios, tipo, categorias, cantidades) {
+     los items para la API, la cantidad total, el precio lleno (subtotal), el descuento de las categorías,
+     el del código (cod: ya verificado que aplica, o null) y el total. */
+  function calcularPedido(precios, tipo, categorias, cantidades, cod) {
     var lineas = [];
     categorias.forEach(function (c) {
       var n = Number(cantidades[c.nombre]) || 0;
-      if (n > 0) lineas.push({ categoria: c.nombre, cantidad: n, precio: precio(precios, tipo, c.porcentaje, n), lleno: precio(precios, tipo, 100, n) });
+      if (n > 0) lineas.push({ categoria: c.nombre, cantidad: n, precio: precio(precios, tipo, c.porcentaje, n), lleno: precio(precios, tipo, 100, n),
+        unitario: (Number(precios[tipo]) || 0) * Number(c.porcentaje) / 100, descuentoCodigo: 0 });
     });
     var suma = function (k) { return lineas.reduce(function (s, l) { return s + l[k]; }, 0); };
-    var subtotal = suma("lleno"), total = suma("precio");
+    var subtotal = suma("lleno"), conCategoria = suma("precio");
+    if (cod) descuentosCodigo(lineas, cod).forEach(function (d, i) { lineas[i].descuentoCodigo = d; lineas[i].precio -= d; });
+    var descuentoCodigo = suma("descuentoCodigo");
     return {
       lineas: lineas,
       items: lineas.map(function (l) { return { categoria: l.categoria, cantidad: l.cantidad }; }),
-      cantidad: suma("cantidad"), subtotal: subtotal, total: total, descuento: subtotal - total,
+      cantidad: suma("cantidad"), subtotal: subtotal, total: conCategoria - descuentoCodigo,
+      descuento: subtotal - conCategoria, descuentoCodigo: descuentoCodigo,
     };
   }
   function textoPedido(items) {
@@ -159,7 +183,7 @@
     }, { pedidos: 0, entradas: 0, total: 0, comision: 0 });
     return { filas: filas, resumen: lista, totales: totales };
   }
-  var api = { reporteReferidos: reporteReferidos, resumenReferido: resumenReferido, calcularPedido: calcularPedido, textoPedido: textoPedido, MAX_CATEGORIAS: MAX_CATEGORIAS, MAX_ENTRADAS: MAX_ENTRADAS, es2x1: es2x1, avisoEvento: avisoEvento, CONCIERTOS_TRIMESTRE: CONCIERTOS_TRIMESTRE, elegiblesTrimestre: elegiblesTrimestre, textoConciertos: textoConciertos, precio: precio, plata: plata, textoTile: textoTile, textoCategoria: textoCategoria, etiqueta: etiqueta, slug: slug, validarFormulario: validarFormulario };
+  var api = { aplicaCodigo: aplicaCodigo, descuentosCodigo: descuentosCodigo, reporteReferidos: reporteReferidos, resumenReferido: resumenReferido, calcularPedido: calcularPedido, textoPedido: textoPedido, MAX_CATEGORIAS: MAX_CATEGORIAS, MAX_ENTRADAS: MAX_ENTRADAS, es2x1: es2x1, avisoEvento: avisoEvento, CONCIERTOS_TRIMESTRE: CONCIERTOS_TRIMESTRE, elegiblesTrimestre: elegiblesTrimestre, textoConciertos: textoConciertos, precio: precio, plata: plata, textoTile: textoTile, textoCategoria: textoCategoria, etiqueta: etiqueta, slug: slug, validarFormulario: validarFormulario };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else raiz.EntradasLogica = api;
 })(this);

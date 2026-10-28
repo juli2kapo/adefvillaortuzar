@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer">
     <script src="js/ut-client.js?v=20261011" defer></script>
     <script src="js/referido.js?v=20261011i" data-sin-cookie></script>
-    <script src="js/entradas-logica.js?v=20261011h"></script>
+    <script src="js/entradas-logica.js?v=20261028a"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Concert Manager (panel privado)</title>
 
@@ -469,6 +469,20 @@
                     <div id="categoryListContainer" class="space-y-1"></div>
                 </div>
 
+                <h4 class="font-bold text-sm text-slate-700 mb-2 mt-6 border-b border-slate-200 pb-1">Códigos de descuento</h4>
+                <p class="text-xs text-slate-500 mb-2">Para entradas sueltas compradas en la web. El % se descuenta sobre el precio de la categoría (un Jubilado con 50% paga la mitad de su precio). "Máx." = cuántas entradas con descuento por compra (vacío = todas). Link para mandar: <code>adefvillaortuzar.com.ar/entradas.html?codigo=CODIGO</code></p>
+                <div class="bg-slate-50 p-3 rounded border border-slate-200 mb-3">
+                    <div class="flex gap-2 mb-2 flex-wrap">
+                        <input type="text" id="newCodNombre" placeholder="Código (Ej: YOGACONCIERTO)" maxlength="30" class="input-field flex-1 text-xs uppercase" style="min-width:140px">
+                        <input type="number" id="newCodPct" placeholder="% desc." min="1" max="100" class="input-field w-20 text-xs">
+                        <input type="number" id="newCodMax" placeholder="Máx." min="1" max="20" class="input-field w-16 text-xs">
+                        <select id="newCodEvento" class="input-field text-xs" style="width:auto;max-width:180px"></select>
+                        <button onclick="addNewCodigo()" class="bg-indigo-600 text-white rounded px-3 hover:bg-indigo-700"><i data-lucide="plus"></i></button>
+                    </div>
+                    <div id="codigoListContainer" class="space-y-1"></div>
+                </div>
+                <p class="text-[10px] text-slate-500 -mt-2 mb-2 italic">Los cambios de códigos se guardan con el botón "Guardar Configuración en Cloud".</p>
+
                 <h4 class="font-bold text-sm text-slate-700 mb-2 mt-6 border-b border-slate-200 pb-1">Venta online</h4>
                 <p class="text-xs text-slate-500 mb-2">Las entradas sueltas siempre se venden online. Las categorías con "Web" tildado aparecen en la página.</p>
                 <label class="flex items-center gap-2 text-sm mb-1"><input type="checkbox" id="ventaWebTrimestral"> Vender Abono Trimestral online</label>
@@ -559,6 +573,7 @@
                 renderTrimestreGrid();
                 renderCategories(); // From config
                 renderCategorySettingsList(); // For config editor
+                renderCodigosList();
                 
                 // Populate Inputs
                 document.getElementById('configYear').value = config.currentYear;
@@ -713,6 +728,7 @@
             
             document.getElementById('yearDisplay').innerText = config.currentYear;
             renderCategories(); // Update sales dropdown
+            renderCodigosList();
             calculateTotal();
             showToast("Configuración Guardada en Nube");
         }
@@ -757,6 +773,51 @@
         window.setCatNota = function(index, valor) {
             const nota = String(valor || "").trim().slice(0, 80);
             if (nota) config.categories[index].notaWeb = nota; else delete config.categories[index].notaWeb;
+        }
+
+        // --- CÓDIGOS DE DESCUENTO (config.codigosDescuento; el Worker los valida al guardar) ---
+        const nombreConcierto = (id) => { const e = events.find(x => String(x.id) === String(id)); return e ? `${e.name} ${fechaCortaEv(e)}` : '(concierto borrado)'; };
+        // Entradas pendientes y aprobadas que usaron el código (para ver cuánto se usó).
+        const usoCodigo = (codigo) => {
+            const n = tickets.filter(t => t.codigoDescuento === codigo && t.estado !== 'rechazada').reduce((s, t) => s + (Number(t.quantity) || 0), 0);
+            return n ? `${n} ${n === 1 ? 'entrada vendida' : 'entradas vendidas'}` : 'sin usar todavía';
+        };
+        window.renderCodigosList = function() {
+            const lista = config.codigosDescuento || [];
+            const ciclo = events.filter(e => e.type === 'Ciclo' && e.visibleWeb === true).sort((a, b) => finDelDia(a) - finDelDia(b));
+            document.getElementById('newCodEvento').innerHTML = '<option value="">Todos los conciertos</option>'
+                + ciclo.map(e => `<option value="${esc(e.id)}">${esc(e.name)} ${esc(fechaCortaEv(e))}</option>`).join('');
+            document.getElementById('codigoListContainer').innerHTML = lista.map((c, idx) => `
+                <div class="flex justify-between items-center gap-2 bg-white p-2 border border-slate-200 rounded text-xs${c.activo === false ? ' opacity-60' : ''}">
+                    <span class="min-w-0"><b class="font-mono">${esc(c.codigo)}</b> · ${esc(c.porcentaje)}% · ${c.maxEntradas ? 'máx. ' + esc(c.maxEntradas) + ' por compra' : 'sin tope'}
+                        · ${c.eventos && c.eventos.length ? c.eventos.map(id => esc(nombreConcierto(id))).join(', ') : 'todos los conciertos'}
+                        · <span class="text-slate-500">${usoCodigo(c.codigo)}</span></span>
+                    <span class="flex items-center gap-2 flex-none">
+                        <label class="flex items-center gap-1 text-slate-600"><input type="checkbox" ${c.activo !== false ? 'checked' : ''} onchange="toggleCodigo(${idx}, this.checked)"> Activo</label>
+                        <button onclick="removeCodigo(${idx})" class="text-red-500 hover:text-red-700"><i data-lucide="trash-2" width="14"></i></button>
+                    </span>
+                </div>`).join('') || '<div class="text-xs text-slate-500">No hay códigos.</div>';
+            lucide.createIcons();
+        }
+        window.addNewCodigo = function() {
+            const codigo = document.getElementById('newCodNombre').value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, '');
+            const porcentaje = parseInt(document.getElementById('newCodPct').value);
+            const maxTxt = document.getElementById('newCodMax').value;
+            const evento = document.getElementById('newCodEvento').value;
+            if (!/^[A-Z0-9-]{3,30}$/.test(codigo)) return alert("El código tiene que tener de 3 a 30 letras, números o guiones (sin espacios).");
+            if (!(porcentaje >= 1 && porcentaje <= 100)) return alert("El descuento tiene que ser de 1 a 100%.");
+            if ((config.codigosDescuento || []).some(c => c.codigo === codigo)) return alert("Ese código ya existe.");
+            config.codigosDescuento = [...(config.codigosDescuento || []), { codigo, porcentaje, maxEntradas: maxTxt ? parseInt(maxTxt) : null, eventos: evento ? [evento] : [], activo: true }];
+            ['newCodNombre', 'newCodPct', 'newCodMax'].forEach(id => document.getElementById(id).value = '');
+            renderCodigosList();
+            showToast("Código agregado: falta Guardar Configuración");
+        }
+        window.toggleCodigo = function(idx, valor) { config.codigosDescuento[idx].activo = valor; renderCodigosList(); }
+        window.removeCodigo = function(idx) {
+            if (confirm(`¿Eliminar el código ${config.codigosDescuento[idx].codigo}? Las ventas que ya lo usaron no cambian.`)) {
+                config.codigosDescuento.splice(idx, 1);
+                renderCodigosList();
+            }
         }
 
         window.renderTrimestreGrid = function() {
@@ -1073,6 +1134,7 @@
                         <div class="font-bold text-sm text-slate-800">${esc(t.attendee)}${t.origen === 'web' ? ' <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1 rounded">WEB</span>' : ''}</div>
                         <div class="text-xs text-slate-500">${esc(t.duration)} - ${esc(t.eventName)} (${esc(t.quantity)})</div>
                         ${t.referido ? `<div class="text-xs text-violet-700">Referido: ${esc(nombreReferido(t.referido))}</div>` : ''}
+                        ${t.codigoDescuento ? `<div class="text-xs text-emerald-700">Código ${esc(t.codigoDescuento)}</div>` : ''}
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="font-mono font-bold text-slate-700">$${esc(t.price)}</span>
@@ -1172,6 +1234,7 @@
                             <div class="text-xs text-slate-700">Total del pedido: <b>$${total.toLocaleString()}</b> · ${esc(personas)} ${personas === 1 ? 'persona' : 'personas'}</div>
                             <div class="text-xs text-slate-500">${esc(t.email)} · ${esc(t.telefono)}${t.cuit ? ' · ' + esc(t.cuit) : ''} · ${t.creadaEn ? esc(new Date(t.creadaEn).toLocaleString('es-AR')) : ''}</div>
                             ${t.referido ? `<div class="text-xs text-violet-700">Referido: ${esc(nombreReferido(t.referido))}</div>` : ''}
+                            ${t.codigoDescuento ? `<div class="text-xs text-emerald-700">Código ${esc(t.codigoDescuento)}: −$${p.filas.reduce((s, f) => s + (Number(f.descuentoCodigo) || 0), 0).toLocaleString()}</div>` : ''}
                             ${t.motivoRechazo ? `<div class="text-xs text-red-600">Motivo: ${esc(t.motivoRechazo)}</div>` : ''}
                             ${t.reaprobadaEn ? `<div class="text-xs text-slate-500">Aprobada después de un rechazo${t.rechazoPrevio ? ` (motivo anterior: ${esc(t.rechazoPrevio)})` : ''} · ${esc(new Date(t.reaprobadaEn).toLocaleString('es-AR'))}</div>` : ''}
                             ${mailsMal.length ? `<div class="text-xs text-red-600">Mail no enviado: ${esc(mailsMal.join(', '))}</div>` : ''}
@@ -1366,7 +1429,8 @@
                 Tipo: t.duration,
                 Categoria: t.categoryName,
                 Precio: t.price, // Aquí mantenemos el precio real pagado para registro
-                Referido: t.referido ? nombreReferido(t.referido) : ''
+                Referido: t.referido ? nombreReferido(t.referido) : '',
+                Codigo: t.codigoDescuento || ''
             }));
 
             // 3. PREPARAR RESUMEN (Tabla Derecha - Cheat Sheet)

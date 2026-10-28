@@ -21,7 +21,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
   <link rel="icon" type="image/png" href="images/logo-adef.png" />
-  <link rel="stylesheet" href="styles.css?v=20261011j" />
+  <link rel="stylesheet" href="styles.css?v=20261028a" />
 </head>
 <body>
 
@@ -74,6 +74,7 @@
 
           <p class="resumen-linea resumen-precio"><span id="cPrecioTexto">Precio</span> <span id="cSubtotal">$0</span></p>
           <p class="resumen-linea resumen-descuento" id="filaDescuento" hidden><span id="cDescuentoTexto">Descuentos</span> <span id="cDescuento"></span></p>
+          <p class="resumen-linea resumen-descuento" id="filaCodigo" hidden><span id="cCodigoTexto">Código</span> <span id="cDescuentoCodigo"></span></p>
           <p class="resumen-total">Total <strong id="cTotal">$0</strong></p>
 
           <div class="transferencia" id="bloqueTransf">
@@ -106,6 +107,14 @@
                 <span id="catTitulo">Entradas</span>
                 <ul class="categorias" id="cCategorias"></ul>
                 <span class="opcional">Podés combinar categorías en la misma compra (por ejemplo, 1 General y 1 Jubilados), hasta 20 entradas.</span>
+              </div>
+              <div class="campo">
+                <label for="cCodigo">Código de descuento <span class="opcional">(si tenés uno)</span></label>
+                <div class="codigo-fila">
+                  <input id="cCodigo" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30" />
+                  <button type="button" class="codigo-btn" id="cAplicarCodigo">Aplicar</button>
+                </div>
+                <p class="codigo-estado" id="cCodigoEstado" role="status" hidden></p>
               </div>
             </fieldset>
 
@@ -172,7 +181,7 @@
   </script>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileListo" async defer></script>
   <script src="js/ut-client.js?v=20261011" defer></script>
-  <script src="js/entradas-logica.js?v=20261011h" defer></script>
-  <script src="js/compra.js?v=20261011i" defer></script>
+  <script src="js/entradas-logica.js?v=20261028a" defer></script>
+  <script src="js/compra.js?v=20261028a" defer></script>
 </body>
 </html>
